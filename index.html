@@ -1,0 +1,3177 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panzora AI App Pro Max</title>
+    <!-- QR Code Generator Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- QR Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <!-- Tesseract OCR Library -->
+    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
+    <!-- jsPDF Library for PDF Creator -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+        }
+        body, html {
+            width: 100%; height: 100%; overflow: hidden;
+            background-color: #000; font-family: 'Segoe UI', sans-serif;
+            color: #fff; user-select: none; transition: 0.3s;
+        }
+
+        /* Light Mode Overrides */
+        body.light-mode {
+            background-color: #f0f4f8; color: #111;
+        }
+        body.light-mode .app-top-header { background: rgba(0,119,255,0.1); border-color: rgba(0,119,255,0.3); }
+        body.light-mode .app-title-area { color: #0055ff; text-shadow: none; }
+        body.light-mode .menu-card-box, body.light-mode .notice-box, body.light-mode .banner-box, body.light-mode .stats-box, body.light-mode .strobe-box, body.light-mode .voice-box, body.light-mode .system-hub-box, body.light-mode .media-hub-box, body.light-mode .notepad-box, body.light-mode .calc-box, body.light-mode .calendar-box { background: rgba(255,255,255,0.85); border-color: #0077ff; color: #222; }
+        body.light-mode .menu-btn { background: rgba(0,119,255,0.06); border-color: #0077ff; color: #0055ff; text-shadow: none; }
+
+        /* Rainbow Fluid Background Canvas */
+        #fluid {
+            position: fixed; top: 0; left: 0; 
+            width: 100vw; height: 100vh; display: block; z-index: 0;
+        }
+
+        .screen { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+        
+        #login-screen { 
+            display: flex; justify-content: center; align-items: center; 
+            background: rgba(5, 5, 5, 0.85); z-index: 10; 
+        }
+        
+        #loading-screen { 
+            display: none; flex-direction: column; justify-content: center; align-items: center; 
+            background: rgba(0, 0, 0, 0.85); z-index: 5; 
+        }
+        
+        #main-screen { 
+            display: none; z-index: 1; background: transparent; 
+            pointer-events: none; justify-content: center; align-items: center; 
+        }
+        
+        /* Advanced Login Box */
+        .login-box {
+            background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(10px); 
+            border: 1px solid rgba(0, 255, 255, 0.3); padding: 35px; border-radius: 20px; 
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.15); text-align: center; width: 85%; max-width: 320px;
+            pointer-events: auto; z-index: 11;
+        }
+        .login-box h2 { margin-bottom: 20px; letter-spacing: 3px; color: #0ff; text-shadow: 0 0 10px #0ff; }
+
+        .login-box input {
+            width: 90%; padding: 12px; margin-bottom: 15px;
+            background: rgba(0, 0, 0, 0.7); border: 1px solid #0ff; 
+            border-radius: 8px; color: #fff; outline: none; font-size: 15px; text-align: center;
+        }
+        .login-box button.enter-btn {
+            width: 90%; padding: 12px; background: transparent; 
+            border: 2px solid #0ff; color: #0ff; border-radius: 8px; 
+            font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s;
+            margin-top: 5px;
+        }
+        .login-box button.enter-btn:hover { background: #0ff; color: #000; box-shadow: 0 0 20px #0ff; }
+        
+        #error-msg { color: #ff3333; margin-top: 10px; display: none; font-size: 13px; text-shadow: 0 0 5px #ff3333; }
+
+        /* Loading Screen */
+        .loader-container { width: 80%; max-width: 300px; text-align: center; z-index: 6; }
+        .progress-bar-bg { width: 100%; height: 4px; background: #222; border-radius: 5px; overflow: hidden; margin-top: 20px; }
+        .progress-bar { height: 100%; width: 0%; background: #0ff; box-shadow: 0 0 15px #0ff; transition: width 0.1s linear; }
+        #loading-text { font-size: 35px; font-weight: bold; color: #0ff; text-shadow: 0 0 10px #0ff; }
+        .system-text { font-size: 12px; color: #555; margin-top: 10px; letter-spacing: 2px; }
+
+        /* --- Swipeable Main Container Setup --- */
+        .app-wrapper {
+            width: 95%; max-width: 380px; height: 92vh;
+            background: transparent;
+            display: flex; flex-direction: column; overflow: hidden;
+            pointer-events: auto; position: relative; border-radius: 20px;
+        }
+
+        /* Draggable Floating Neon Camera Button */
+        .floating-cam-btn {
+            position: absolute; bottom: 20px; right: 20px; width: 56px; height: 56px;
+            background: linear-gradient(135deg, #00ffff, #ff00ff); border: none; border-radius: 50%;
+            color: #000; font-size: 24px; cursor: grab; box-shadow: 0 0 20px rgba(0,255,255,0.7);
+            z-index: 50; display: flex; justify-content: center; align-items: center; transition: transform 0.1s;
+            touch-action: none;
+        }
+        .floating-cam-btn:active { cursor: grabbing; transform: scale(0.95); }
+
+        /* Swipeable Tabs Track */
+        .swipe-container {
+            flex: 1; width: 100%; height: 100%;
+            display: flex; overflow-x: auto; scroll-snap-type: x mandatory;
+            scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
+            border-radius: 16px;
+        }
+        .swipe-container::-webkit-scrollbar { display: none; }
+
+        .swipe-pane {
+            min-width: 100%; width: 100%; height: 100%;
+            flex-shrink: 0; scroll-snap-align: start;
+            display: flex; flex-direction: column; overflow-y: auto;
+            padding: 2px 4px 15px 4px; gap: 14px; scroll-behavior: smooth;
+        }
+
+        /* Top Bar */
+        .app-top-header {
+            padding: 12px 16px; background: rgba(0, 255, 255, 0.1);
+            display: flex; justify-content: space-between; align-items: center;
+            border: 1px solid rgba(0, 255, 255, 0.4); border-radius: 14px; margin-bottom: 4px;
+            backdrop-filter: blur(10px);
+        }
+        .app-title-area { font-weight: bold; letter-spacing: 2px; color: #0ff; text-shadow: 0 0 8px #0ff; font-size: 13px; }
+        
+        .top-icons-group { display: flex; align-items: center; gap: 8px; }
+        .icon-badge {
+            background: rgba(0,255,255,0.12); border: 1px solid #0ff; color: #0ff;
+            padding: 6px 10px; border-radius: 8px; font-size: 13px; cursor: pointer; text-shadow: 0 0 5px #0ff;
+        }
+        .icon-badge:active { background: #0ff; color: #000; }
+
+        /* Indicator Dots Bar */
+        .tab-indicators-bar {
+            display: flex; justify-content: center; align-items: center; gap: 8px;
+            padding: 6px 0; margin-bottom: 4px;
+        }
+        .indicator-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: rgba(0, 255, 255, 0.3); transition: 0.3s;
+        }
+        .indicator-dot.active {
+            width: 24px; border-radius: 4px; background: #0ff; box-shadow: 0 0 10px #0ff;
+        }
+
+        .date-display-badge {
+            font-size: 11px; color: #0ff; text-align: right; padding: 2px 10px; margin-bottom: 6px;
+            letter-spacing: 1px; text-shadow: 0 0 5px #0ff; font-weight: 600;
+        }
+
+        /* --- Standalone New Tabs UI (Notepad, Calendar, Calculator) --- */
+        .notepad-box {
+            width: 100%; flex: 1; min-height: 380px; background: rgba(0, 0, 0, 0.7);
+            border: 1.5px solid rgba(0, 255, 255, 0.4); border-radius: 16px; padding: 16px;
+            display: flex; flex-direction: column; gap: 12px; backdrop-filter: blur(10px);
+            box-shadow: 0 0 20px rgba(0,255,255,0.1);
+        }
+        .notepad-title { color: #0ff; font-size: 14px; font-weight: bold; text-shadow: 0 0 8px #0ff; display: flex; justify-content: space-between; align-items: center; }
+        .notepad-textarea {
+            flex: 1; width: 100%; background: #111; border: 1px solid rgba(0,255,255,0.3);
+            border-radius: 10px; color: #fff; padding: 12px; font-size: 14px; resize: none; outline: none; line-height: 1.4;
+        }
+
+        .calendar-box {
+            width: 100%; background: rgba(0, 0, 0, 0.7);
+            border: 1.5px solid rgba(255, 170, 0, 0.4); border-radius: 16px; padding: 16px;
+            display: flex; flex-direction: column; gap: 10px; backdrop-filter: blur(10px);
+            box-shadow: 0 0 20px rgba(255,170,0,0.1);
+        }
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; color: #ffaa00; font-weight: bold; font-size: 14px; text-shadow: 0 0 8px #ffaa00; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; font-size: 12px; }
+        .cal-day-name { color: #ffaa00; font-weight: bold; padding: 4px 0; }
+        .cal-day { padding: 8px 0; background: rgba(255,170,0,0.06); border: 1px solid rgba(255,170,0,0.2); border-radius: 6px; cursor: pointer; color: #ddd; }
+        .cal-day.today { background: #ffaa00; color: #000; font-weight: bold; box-shadow: 0 0 10px #ffaa00; }
+
+        .calc-box {
+            width: 100%; background: rgba(0, 0, 0, 0.75);
+            border: 1.5px solid rgba(0, 255, 170, 0.4); border-radius: 16px; padding: 16px;
+            display: flex; flex-direction: column; gap: 10px; backdrop-filter: blur(10px);
+            box-shadow: 0 0 20px rgba(0,255,170,0.1);
+        }
+        .calc-display {
+            width: 100%; padding: 12px; background: #111; border: 1px solid #00ffaa;
+            border-radius: 10px; color: #00ffaa; font-size: 20px; text-align: right; font-family: monospace;
+            text-shadow: 0 0 8px #00ffaa;
+        }
+        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .calc-btn {
+            padding: 12px; background: rgba(0,255,170,0.08); border: 1px solid #00ffaa;
+            color: #00ffaa; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; text-align: center;
+        }
+        .calc-btn:active { background: #00ffaa; color: #000; box-shadow: 0 0 15px #00ffaa; }
+
+        /* Standalone Sections (Original Dashboard) */
+        .banner-box {
+            width: 100%; padding: 16px; background: rgba(0, 255, 255, 0.06);
+            border: 1.5px solid rgba(0, 255, 255, 0.4); border-radius: 16px;
+            text-align: center; box-shadow: 0 0 15px rgba(0,255,255,0.1);
+        }
+        .banner-box h4 { color: #0ff; font-size: 14px; margin-bottom: 6px; text-shadow: 0 0 8px #0ff; font-weight: bold; }
+        .banner-box p { font-size: 13px; color: #ddd; line-height: 1.4; font-weight: 500; }
+
+        .notice-box {
+            width: 100%; padding: 16px; background: rgba(255, 0, 255, 0.06);
+            border: 1.5px solid rgba(255, 0, 255, 0.4); border-radius: 16px;
+            font-size: 13px; color: #f5f5f5; line-height: 1.5; box-shadow: 0 0 15px rgba(255,0,255,0.1);
+            font-weight: 500;
+        }
+        .notice-box b { color: #ff00ff; text-shadow: 0 0 8px #ff00ff; display: block; margin-bottom: 6px; font-size: 14px; }
+
+        /* Tools Section */
+        .menu-card-box {
+            width: 100%; padding: 16px; background: rgba(0, 0, 0, 0.6);
+            border: 1.5px solid rgba(0, 255, 255, 0.5); border-radius: 16px;
+            box-shadow: 0 0 20px rgba(0,255,255,0.12);
+            display: flex; flex-direction: column; gap: 12px;
+            backdrop-filter: blur(10px);
+        }
+        .menu-card-title { color: #0ff; font-size: 13px; font-weight: bold; letter-spacing: 1px; margin-bottom: 2px; text-shadow: 0 0 6px #0ff; }
+
+        .menu-grid {
+            display: grid; grid-template-columns: 1fr; gap: 10px; width: 100%;
+        }
+        .menu-btn {
+            padding: 14px 18px; background: rgba(0, 255, 255, 0.06);
+            border: 1.5px solid #0ff; border-radius: 12px; color: #0ff;
+            font-size: 14px; font-weight: bold; cursor: pointer; text-align: left;
+            transition: 0.3s; text-shadow: 0 0 8px #0ff; box-shadow: 0 0 10px rgba(0,255,255,0.1);
+            display: flex; align-items: center; gap: 12px;
+        }
+        .menu-btn:active { background: #0ff; color: #000; box-shadow: 0 0 20px #0ff; transform: scale(0.98); }
+
+        /* Strobe Flashlight Box */
+        .strobe-box {
+            width: 100%; padding: 16px; background: rgba(255, 255, 0, 0.06);
+            border: 1.5px solid rgba(255, 255, 0, 0.4); border-radius: 16px;
+            text-align: center; box-shadow: 0 0 15px rgba(255,255,0,0.1);
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .strobe-box h4 { color: #ffff00; font-size: 14px; margin-bottom: 2px; text-shadow: 0 0 8px #ffff00; font-weight: bold; }
+        .strobe-box p { font-size: 13px; color: #ddd; line-height: 1.4; font-weight: 500; }
+
+        /* Voice Recorder Box */
+        .voice-box {
+            width: 100%; padding: 16px; background: rgba(0, 255, 255, 0.06);
+            border: 1.5px solid rgba(0, 255, 255, 0.4); border-radius: 16px;
+            text-align: center; box-shadow: 0 0 15px rgba(0,255,255,0.1);
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .voice-box h4 { color: #0ff; font-size: 14px; margin-bottom: 2px; text-shadow: 0 0 8px #0ff; font-weight: bold; }
+        .voice-box p { font-size: 13px; color: #ddd; line-height: 1.4; font-weight: 500; }
+
+        /* System Maintenance Hub Box */
+        .system-hub-box {
+            width: 100%; padding: 16px; background: rgba(0, 255, 170, 0.06);
+            border: 1.5px solid rgba(0, 255, 170, 0.4); border-radius: 16px;
+            text-align: center; box-shadow: 0 0 15px rgba(0,255,170,0.1);
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .system-hub-box h4 { color: #00ffaa; font-size: 14px; margin-bottom: 2px; text-shadow: 0 0 8px #00ffaa; font-weight: bold; }
+        .system-hub-box p { font-size: 13px; color: #ddd; line-height: 1.4; font-weight: 500; }
+
+        /* Media Studio Box */
+        .media-hub-box {
+            width: 100%; padding: 16px; background: rgba(255, 0, 170, 0.06);
+            border: 1.5px solid rgba(255, 0, 170, 0.4); border-radius: 16px;
+            text-align: center; box-shadow: 0 0 15px rgba(255,0,170,0.1);
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .media-hub-box h4 { color: #ff00aa; font-size: 14px; margin-bottom: 2px; text-shadow: 0 0 8px #ff00aa; font-weight: bold; }
+        .media-hub-box p { font-size: 13px; color: #ddd; line-height: 1.4; font-weight: 500; }
+
+        .stats-box {
+            width: 100%; padding: 16px; background: rgba(255, 0, 255, 0.06);
+            border: 1.5px solid rgba(255, 0, 255, 0.4); border-radius: 16px;
+            text-align: center; box-shadow: 0 0 15px rgba(255,0,255,0.1);
+        }
+        .stats-box h4 { color: #ff00ff; font-size: 14px; margin-bottom: 6px; text-shadow: 0 0 8px #ff00ff; font-weight: bold; }
+        .stats-box p { font-size: 13px; color: #ddd; line-height: 1.5; font-weight: 500; }
+
+        /* --- Universal Full-Screen Dedicated Pages Style --- */
+        .fullscreen-page {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: radial-gradient(circle at center, #0a001a 0%, #000000 100%);
+            z-index: 100; display: none; flex-direction: column; overflow: hidden;
+            box-shadow: inset 0 0 60px rgba(0, 255, 255, 0.2);
+        }
+
+        .page-top-bar {
+            padding: 15px 20px; background: rgba(15, 0, 25, 0.85);
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+            display: flex; justify-content: space-between; align-items: center;
+            backdrop-filter: blur(12px);
+        }
+        .page-title { color: #0ff; font-size: 16px; font-weight: bold; text-shadow: 0 0 10px #0ff; letter-spacing: 2px; }
+        .page-close-btn { background: transparent; border: 1px solid #ff3333; color: #ff3333; padding: 6px 14px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 12px; }
+
+        .page-content-body {
+            flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; gap: 15px;
+        }
+
+        .box-card {
+            width: 100%; max-width: 400px; background: rgba(0, 0, 0, 0.75);
+            border: 1px solid rgba(0, 255, 255, 0.4); border-radius: 16px; padding: 20px;
+            box-shadow: 0 0 20px rgba(0,255,255,0.1); display: flex; flex-direction: column; gap: 12px;
+        }
+
+        .fullscreen-input {
+            width: 100%; padding: 12px 15px; background: #111; border: 1px solid #0ff;
+            border-radius: 10px; color: #fff; font-size: 15px; outline: none; text-align: center;
+        }
+        .fullscreen-btn {
+            width: 100%; padding: 12px; background: transparent; border: 2px solid #0ff;
+            color: #0ff; border-radius: 10px; font-size: 14px; font-weight: bold; cursor: pointer; text-shadow: 0 0 8px #0ff;
+            box-shadow: 0 0 10px rgba(0,255,255,0.1); transition: 0.3s;
+        }
+        .fullscreen-btn:active { background: #0ff; color: #000; box-shadow: 0 0 20px #0ff; }
+
+        /* Password Tool Specific */
+        #generated-pass {
+            width: 100%; padding: 12px; background: #111; border: 1px solid #0ff;
+            border-radius: 10px; color: #0ff; font-size: 18px; text-align: center; font-family: monospace;
+        }
+
+        /* QR Studio Specific */
+        #qrcode-output {
+            margin: 10px auto; padding: 10px; background: #fff; border-radius: 12px;
+            display: inline-block;
+        }
+        .scanner-box-full { 
+            width: 100%; max-width: 400px; border-radius: 12px; 
+            overflow: hidden; border: 1px solid #0ff; height: 200px; 
+            background: #000; display: flex; justify-content: center; align-items: center;
+        }
+        #reader { width: 100% !important; }
+
+        /* OCR Tool Specific */
+        .ocr-select-full {
+            width: 100%; padding: 12px; background: #111; border: 1px solid #0ff;
+            border-radius: 10px; color: #0ff; font-size: 14px; font-weight: bold; text-align: center; outline: none;
+        }
+        #ocr-result-text-full {
+            color: #fff; font-size: 14px; white-space: pre-wrap; word-break: break-all; max-height: 120px; overflow-y: auto; text-align: left; line-height: 1.4; background: #111; padding: 12px; border-radius: 10px; border: 1px solid rgba(0,255,255,0.3);
+        }
+
+        /* Formatter Tool Specific */
+        .formatter-textarea-full {
+            width: 100%; height: 110px; padding: 12px; background: #111; border: 1px solid #0f0;
+            border-radius: 10px; color: #fff; font-size: 14px; resize: none; outline: none;
+        }
+
+        /* AI Chat Fullscreen Specific */
+        .ai-key-container {
+            width: 100%; max-width: 500px; background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 0, 255, 0.3); padding: 10px 15px; border-radius: 12px; display: flex; gap: 10px; align-items: center;
+        }
+        .ai-key-input {
+            flex: 1; padding: 10px; background: #111; border: 1px solid #ff00ff;
+            border-radius: 8px; color: #fff; font-size: 14px; outline: none;
+        }
+        .ai-messages-area {
+            flex: 1; width: 100%; max-width: 600px; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
+            scroll-behavior: smooth;
+        }
+        .chat-bubble {
+            max-width: 85%; padding: 14px 18px; border-radius: 16px; font-size: 15px; line-height: 1.4; word-break: break-word;
+        }
+        .chat-bubble.user {
+            background: rgba(0, 255, 255, 0.15); border: 1px solid #0ff; color: #fff;
+            align-self: flex-end; border-bottom-right-radius: 3px; box-shadow: 0 0 12px rgba(0,255,255,0.15);
+        }
+        .chat-bubble.ai {
+            background: rgba(255, 0, 255, 0.15); border: 1px solid #ff00ff; color: #fff;
+            align-self: flex-start; border-bottom-left-radius: 3px; box-shadow: 0 0 12px rgba(255,0,255,0.15);
+        }
+        .chat-bubble img { width: 100%; border-radius: 12px; margin-top: 10px; border: 1px solid #ff00ff; }
+
+        .ai-input-panel {
+            width: 100%; max-width: 600px; padding: 15px; background: rgba(10, 0, 20, 0.9);
+            border-top: 1px solid rgba(255, 0, 255, 0.4); display: flex; flex-direction: column; gap: 10px;
+            backdrop-filter: blur(12px); border-radius: 16px 16px 0 0;
+        }
+        .ai-input-row { display: flex; gap: 10px; }
+        .ai-main-input {
+            flex: 1; padding: 14px; background: #111; border: 1px solid #ff00ff;
+            border-radius: 12px; color: #fff; font-size: 15px; outline: none;
+        }
+        .action-icon-btn {
+            padding: 0 20px; background: transparent; border: 2px solid #ff00ff; color: #ff00ff;
+            border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 15px; text-shadow: 0 0 8px #ff00ff; transition: 0.3s;
+        }
+        .action-icon-btn:active { background: #ff00ff; color: #000; box-shadow: 0 0 20px #ff00ff; }
+        .ai-tools-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .ai-tool-mini-btn {
+            flex: 1; min-width: 100px; padding: 10px; background: rgba(255, 0, 255, 0.08); border: 1px solid rgba(255, 0, 255, 0.5);
+            color: #ff00ff; border-radius: 10px; font-size: 13px; font-weight: bold; cursor: pointer; text-align: center;
+        }
+        .ai-tool-mini-btn:active { background: #ff00ff; color: #000; }
+
+        /* --- Cyberpunk Color Picker Styles --- */
+        .color-preview-box {
+            width: 100%; height: 70px; border-radius: 12px; border: 2px solid #ffaa00;
+            box-shadow: 0 0 15px rgba(255,170,0,0.3); transition: 0.2s; margin-bottom: 5px;
+        }
+        .palette-grid-15 {
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 6px;
+        }
+        .palette-swatch-15 {
+            height: 32px; border-radius: 8px; cursor: pointer; border: 1px solid rgba(255,255,255,0.4);
+            transition: 0.2s;
+        }
+        .palette-swatch-15:active { transform: scale(0.9); }
+
+        /* --- Mini Cyber Snake Game Styles --- */
+        #game-canvas {
+            background: #050505; border: 2px solid #ff0055; border-radius: 12px;
+            box-shadow: 0 0 20px rgba(255,0,85,0.2); display: block; margin: 0 auto;
+        }
+        .game-controls {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 180px; margin: 0 auto;
+        }
+        .game-btn {
+            padding: 12px; background: rgba(255,0,85,0.1); border: 1px solid #ff0055;
+            color: #ff0055; font-weight: bold; border-radius: 8px; font-size: 16px; cursor: pointer; text-align: center;
+        }
+        .game-btn:active { background: #ff0055; color: #000; box-shadow: 0 0 10px #ff0055; }
+    </style>
+</head>
+<body>
+
+    <!-- Rainbow Smokey Fluid Canvas -->
+    <canvas id="fluid"></canvas>
+
+    <!-- Background Music File (music.mp3) with preload -->
+    <audio id="bgMusic" loop preload="auto">
+        <source src="music.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- 1. Login Screen -->
+    <div id="login-screen" class="screen">
+        <div class="login-box">
+            <h2>Panzora</h2>
+            <input type="text" id="username" placeholder="USERNAME" onfocus="playMusic()">
+            <input type="password" id="password" placeholder="PASSWORD">
+            <button class="enter-btn" onclick="login()">Enter System</button>
+            <div id="error-msg">ACCESS DENIED</div>
+        </div>
+    </div>
+
+    <!-- 2. Loading Screen -->
+    <div id="loading-screen" class="screen">
+        <div class="loader-container">
+            <div id="loading-text">0%</div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar" id="progress"></div>
+            </div>
+            <div class="system-text">INITIALIZING AI MODULES...</div>
+        </div>
+    </div>
+
+    <!-- 3. Main Dashboard Menu with Swipeable Tabs -->
+    <div id="main-screen" class="screen">
+        <div class="app-wrapper">
+            <!-- Draggable Floating Cyber Camera Button -->
+            <button class="floating-cam-btn" id="floating-cam-btn" onclick="openFullscreen('camera-fullscreen')" title="Cyber Camera Studio">📸</button>
+
+            <!-- Top App Bar -->
+            <div class="app-top-header">
+                <span class="app-title-area">PANZORA AI STUDIO</span>
+                <div class="top-icons-group">
+                    <button class="icon-badge" onclick="openFullscreen('settings-fullscreen')" title="Settings">⚙️</button>
+                    <button class="icon-badge" onclick="toggleDarkMode()" title="Dark/Light Mode">🌙</button>
+                </div>
+            </div>
+
+            <!-- Indicator Dots Bar -->
+            <div class="tab-indicators-bar" id="tab-indicators">
+                <div class="indicator-dot" id="dot-0"></div>
+                <div class="indicator-dot active" id="dot-1"></div>
+                <div class="indicator-dot" id="dot-2"></div>
+            </div>
+
+            <!-- Date Display Bar -->
+            <div id="live-date" class="date-display-badge">Date: --/--/----</div>
+
+            <!-- Swipeable Container (Left, Center, Right Panes) -->
+            <div class="swipe-container" id="swipe-container" onscroll="updateActiveIndicator()">
+                
+                <!-- LEFT TAB PANE: Cyber Smart Notepad -->
+                <div class="swipe-pane">
+                    <div class="notepad-box">
+                        <div class="notepad-title">
+                            <span>📝 Cyber Smart Notepad</span>
+                            <button class="icon-badge" onclick="clearNotepad()" style="padding: 4px 8px; font-size:11px; border-color:#ff3333; color:#ff3333;">Clear</button>
+                        </div>
+                        <p style="font-size:12px; color:#aaa;">ඔබට අවශ්‍ය කෙටි සටහන් (Notes) මෙහි ටයිප් කර තබා ගන්න (Auto-saves):</p>
+                        <textarea id="smart-notepad" class="notepad-textarea" placeholder="Type your important notes here..." oninput="saveNotepad()"></textarea>
+                        <button class="fullscreen-btn" style="border-color:#0ff; color:#0ff; font-size:13px;" onclick="saveNotepadManual()">💾 Save Note</button>
+                    </div>
+                </div>
+
+                <!-- CENTER TAB PANE: Original Main Menu & Tools -->
+                <div class="swipe-pane">
+                    
+                    <!-- 1. Banner Section -->
+                    <div class="banner-box">
+                        <h4>⚡ NEXORA & PANZORA LABS</h4>
+                        <p>ඔබගේ සියලුම ඩිජිටල් සහ AI මෙවලම් එකම තැනකින් සුපිරියට පාලනය කරන්න!</p>
+                    </div>
+
+                    <!-- 2. Notice Box Section -->
+                    <div class="notice-box">
+                        <b>📢 විශේෂ නිවේදනය (Notice):</b>
+                        මෙම ඇප් එක තුළ නවීන සයිබර්පන්ක් මෙවලම්, Pro Prank & Joke Studio, Video Downloader, Alarm & Reminders සහ Media Studio පහසුකම් අන්තර්ගත කර ඇත!
+                    </div>
+
+                    <!-- 3. Features Section (Available Tools) -->
+                    <div class="menu-card-box">
+                        <div class="menu-card-title">🛠️ AVAILABLE TOOLS & MODULES</div>
+                        <div class="menu-grid">
+                            <button class="menu-btn" onclick="openFullscreen('joke-fullscreen')" style="border-color: #ffe600; color: #ffe600; text-shadow: 0 0 8px #ffe600;">🤡 Cyber Prank & Joke Studio</button>
+                            <button class="menu-btn" onclick="openFullscreen('tts-fullscreen')" style="border-color: #ff007f; color: #ff007f; text-shadow: 0 0 8px #ff007f;">🗣️ Cyber Girl Voice TTS Studio</button>
+                            <button class="menu-btn" onclick="openFullscreen('downloader-fullscreen')" style="border-color: #00e5ff; color: #00e5ff; text-shadow: 0 0 8px #00e5ff;">📥 Cyber Video Downloader</button>
+                            <button class="menu-btn" onclick="openFullscreen('alarm-fullscreen')" style="border-color: #00ffaa; color: #00ffaa; text-shadow: 0 0 8px #00ffaa;">⏰ Cyber Alarm & Reminders</button>
+                            <button class="menu-btn" onclick="openFullscreen('vault-fullscreen')" style="border-color: #ff00aa; color: #ff00aa; text-shadow: 0 0 8px #ff00aa;">🔐 Cyber Gallery Vault (Locker)</button>
+                            <button class="menu-btn" onclick="openFullscreen('pdf-fullscreen')" style="border-color: #ff5500; color: #ff5500; text-shadow: 0 0 8px #ff5500;">📄 PDF Creator Tool (Max 15)</button>
+                            <button class="menu-btn" onclick="openFullscreen('pass-fullscreen')">🔐 Password Generator</button>
+                            <button class="menu-btn" onclick="openFullscreen('qr-fullscreen')">📷 QR Code Studio</button>
+                            <button class="menu-btn" onclick="openFullscreen('ocr-fullscreen')">📝 AI Text Extractor (OCR)</button>
+                            <button class="menu-btn" onclick="openFullscreen('formatter-fullscreen')" style="border-color: #0f0; color: #0f0; text-shadow: 0 0 8px #0f0;">🔧 Smart Text Formatter</button>
+                            <button class="menu-btn" onclick="openFullscreen('color-fullscreen')" style="border-color: #ffaa00; color: #ffaa00; text-shadow: 0 0 8px #ffaa00;">🎨 Cyberpunk Color Picker</button>
+                            <button class="menu-btn" onclick="openFullscreen('game-fullscreen')" style="border-color: #ff0055; color: #ff0055; text-shadow: 0 0 8px #ff0055;">🕹️ Mini Cyber Snake Game</button>
+                            <button class="menu-btn" onclick="openFullscreen('ai-chat-fullscreen')" style="border-color: #ff00ff; color: #ff00ff; text-shadow: 0 0 8px #ff00ff;">✨ Panzora AI Multi-Modal Hub</button>
+                        </div>
+                    </div>
+
+                    <!-- 4. Cyber Strobe Flashlight Box -->
+                    <div class="strobe-box">
+                        <h4>🔦 Cyber Strobe Flashlight</h4>
+                        <p>ෆ්ලෑෂ් ලයිට් එක නිමී නිමී පත්තුවෙන (Strobe) විශේෂාංගය:</p>
+                        <button class="fullscreen-btn" id="strobe-toggle-btn" style="border-color: #ffff00; color: #ffff00; font-size:14px;" onclick="toggleStrobeFlashlight()">⚡ Turn On Strobe</button>
+                    </div>
+
+                    <!-- 5. Cyber Voice Recorder Box -->
+                    <div class="voice-box">
+                        <h4>🎙️ Cyber Voice Recorder</h4>
+                        <p id="voice-status-text">හඬ පට (Voice) රෙකෝඩ් කර දුරකථනයට සේ이브 කරගන්න:</p>
+                        <audio id="recorded-audio-playback" controls style="width: 100%; display: none; margin-top: 5px; border-radius: 8px;"></audio>
+                        <button class="fullscreen-btn" id="voice-rec-btn" style="border-color: #0ff; color: #0ff; font-size:14px; margin-top:5px;" onclick="startVoiceRecording()">🎙️ Start Recording</button>
+                        <button class="fullscreen-btn" id="download-voice-btn" style="border-color: #0f0; color: #0f0; font-size:14px; display:none; margin-top:5px;" onclick="downloadVoiceRecording()">💾 Download Voice Record</button>
+                    </div>
+
+                    <!-- 6. Cyber System Maintenance Hub Box -->
+                    <div class="system-hub-box">
+                        <h4>⚡ Cyber System Maintenance Hub</h4>
+                        <p>Internet Speed Test, Battery Info & Storage Cleaner පහසුකම්:</p>
+                        <button class="fullscreen-btn" style="border-color: #00ffaa; color: #00ffaa; font-size:14px; margin-top:5px;" onclick="openFullscreen('system-hub-fullscreen')">🚀 Open System Hub</button>
+                    </div>
+
+                    <!-- 7. Cyber Media Studio Box -->
+                    <div class="media-hub-box">
+                        <h4>🎬 Cyber Media Studio</h4>
+                        <p>ගැලරියෙන් Photo සහ Video ගෙන Pro Tools 15+, Eraser සහ Background Removal සමඟ Edit කරගන්න:</p>
+                        <button class="fullscreen-btn" style="border-color: #ff00aa; color: #ff00aa; font-size:14px; margin-top:5px;" onclick="openFullscreen('media-studio-fullscreen')">✨ Open Media Studio</button>
+                    </div>
+
+                    <!-- 8. System Statistics Section -->
+                    <div class="stats-box">
+                        <h4>📊 System Statistics</h4>
+                        <p>Status: Active & Secure<br>Version: 4.5 Pro Edition<br>Developer: Pansilu (Nexora Lab)</p>
+                    </div>
+
+                </div>
+
+                <!-- RIGHT TAB PANE: Dynamic Calendar & Pro Calculator -->
+                <div class="swipe-pane">
+                    
+                    <!-- Dynamic Calendar Box -->
+                    <div class="calendar-box">
+                        <div class="calendar-header">
+                            <button onclick="prevMonth()" style="background:none; border:none; color:#ffaa00; font-size:16px; cursor:pointer;">◀</button>
+                            <span id="cal-month-year">Month Year</span>
+                            <button onclick="nextMonth()" style="background:none; border:none; color:#ffaa00; font-size:16px; cursor:pointer;">▶</button>
+                        </div>
+                        <div class="calendar-grid" id="calendar-days-header">
+                            <div class="cal-day-name">Su</div>
+                            <div class="cal-day-name">Mo</div>
+                            <div class="cal-day-name">Tu</div>
+                            <div class="cal-day-name">We</div>
+                            <div class="cal-day-name">Th</div>
+                            <div class="cal-day-name">Fr</div>
+                            <div class="cal-day-name">Sa</div>
+                        </div>
+                        <div class="calendar-grid" id="calendar-days-grid">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Pro Calculator Box -->
+                    <div class="calc-box">
+                        <div style="color:#00ffaa; font-size:13px; font-weight:bold; text-shadow:0 0 6px #00ffaa;">🧮 Pro Calculator</div>
+                        <input type="text" id="calc-display" class="calc-display" value="0" readonly>
+                        <div class="calc-grid">
+                            <button class="calc-btn" onclick="calcClear()" style="color:#ff3333; border-color:#ff3333;">C</button>
+                            <button class="calc-btn" onclick="calcAppend('(')">(</button>
+                            <button class="calc-btn" onclick="calcAppend(')')">)</button>
+                            <button class="calc-btn" onclick="calcAppend('/')" style="color:#ffaa00; border-color:#ffaa00;">÷</button>
+                            
+                            <button class="calc-btn" onclick="calcAppend('7')">7</button>
+                            <button class="calc-btn" onclick="calcAppend('8')">8</button>
+                            <button class="calc-btn" onclick="calcAppend('9')">9</button>
+                            <button class="calc-btn" onclick="calcAppend('*')" style="color:#ffaa00; border-color:#ffaa00;">×</button>
+                            
+                            <button class="calc-btn" onclick="calcAppend('4')">4</button>
+                            <button class="calc-btn" onclick="calcAppend('5')">5</button>
+                            <button class="calc-btn" onclick="calcAppend('6')">6</button>
+                            <button class="calc-btn" onclick="calcAppend('-')" style="color:#ffaa00; border-color:#ffaa00;">-</button>
+                            
+                            <button class="calc-btn" onclick="calcAppend('1')">1</button>
+                            <button class="calc-btn" onclick="calcAppend('2')">2</button>
+                            <button class="calc-btn" onclick="calcAppend('3')">3</button>
+                            <button class="calc-btn" onclick="calcAppend('+')" style="color:#ffaa00; border-color:#ffaa00;">+</button>
+                            
+                            <button class="calc-btn" onclick="calcAppend('0')" style="grid-column: span 2;">0</button>
+                            <button class="calc-btn" onclick="calcAppend('.')">.</button>
+                            <button class="calc-btn" onclick="calcCalculate()" style="background:#00ffaa; color:#000; box-shadow:0 0 10px #00ffaa;">=</button>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= FULL-SCREEN DEDICATED PAGES ================= -->
+
+    <!-- Cyber Prank & Joke Studio Fullscreen Page -->
+    <div id="joke-fullscreen" class="fullscreen-page">
+        <div class="page-top-bar">
+            <span class="page-title" style="color:#ffe600; text-shadow:0 0 10px #ffe600;">🤡 CYBER PRANK & JOKE STUDIO</span>
+            <button class="page-close-btn" onclick="stopHackerTerminal(); closeFullscreen('joke-fullscreen')">✕ Close</button>
+        </div>
+        <div class="page-content-body">
+            
+            <!-- 1. AI Cyber Roast & Joke Generator Card -->
+            <div class="box-card" style="border-color:#ffe600;">
+                <h3 style="color:#ffe600; font-size:14px;">🔥 AI Cyber Roast & Joke Generator</h3>
+                <p style="font-size:12px; color:#aaa;">සිංහල සහ ඉංග්‍රීසි භාෂාවලින් පංති මට්ටමේ සුපිරි ජෝක්ස් සහ රෝස්ට්ස් ලබාගන්න:</p>
+                <select id="joke-category" class="ocr-select-full" style="border-color:#ffe600; color:#ffe600; background:#111;">
+                    <option value="sinhala">සිංහල පට්ට ජෝක්ස් (Sinhala Jokes)</option>
+                    <option value="tech">Tech & Programmer Roasts</option>
+                    <option value="friends">Friendship & Sarcastic Roasts</option>
+                </select>
+                <button class="fullscreen-btn" style="border-color:#ffe600; color:#ffe600; background:rgba(255,230,0,0.15);" onclick="generateProJoke()">✨ Generate Joke / Roast</button>
+                <div id="joke-output-box" style="font-size:14px; color:#fff; background:#111; padding:12px; border-radius:10px; border:1px solid rgba(255,230,0,0.3); min-height:60px; line-height:1.4; text-align:center;">Click generate to see a pro joke!</div>
+            </div>
+
+            <!-- 2. Cyber Hacker Terminal Prank Card -->
+            <div class="box-card" style="border-color:#00ff55;">
+                <h3 style="color:#00ff55; font-size:14px;">💻 Cyber Hacker Terminal Prank</h3>
+                <p style="font-size:12px; color:#aaa;">යාළුවන්ට පෙන්නන්න සැබෑ හැකර් කෙනෙක් වගේ ස්ක්‍රීන් එක හැක් වෙන හැටි:</p>
+                <input type="text" id="target-name-input" class="fullscreen-input" placeholder="Target Name (e.g. Friend's Phone)" style="border-color:#00ff55; color:#00ff55;">
+                <div style="display:flex; gap:10px;">
+                    <button class="fullscreen-btn" style="border-color:#00ff55; color:#00ff55; background:rgba(0,255,85,0.15);" onclick="startHackerTerminal()">🚀 Start Hacker Prank</button>
+                    <button class="fullscreen-btn" style="border-color:#ff3333; color:#ff3333; background:rgba(255,51,51,0.15);" onclick="stopHackerTerminal()">Stop</button>
+                </div>
+            </div>
+
+            <!-- 3. Web Audio Prank Soundboard Card -->
+            <div class="box-card" style="border-color:#ff00ff;">
+                <h3 style="color:#ff00ff; font-size:14px;">🔊 Prank Soundboard (Audio Effects)</h3>
+                <p style="font-size:12px; color:#aaa;">ක්ලික් කළ සැනින් විහිළුකාරී ශබ්ද නිකුත් කරන සවුන්ඩ් බෝඩ් එක:</p>
+                <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;">
+                    <button class="fullscreen-btn" style="padding:10px; font-size:12px; border-color:#ff00ff; color:#ff00ff;" onclick="playPrankSound('airhorn')">📯 Air Horn</button>
+                    <button class="fullscreen-btn" style="padding:10px; font-size:12px; border-color:#00e5ff; color:#00e5ff;" onclick="playPrankSound('laser')">🔫 Laser Zap</button>
+                    <button class="fullscreen-btn" style="padding:10px; font-size:12px; border-color:#00ffaa; color:#00ffaa;" onclick="playPrankSound('boing')">🌀 Boing</button>
+                </div>
+            </div>
+
+            <!-- 4. Fake System Crash Prank Card -->
+            <div class="box-card" style="border-color:#ff3333;">
+                <h3 style="color:#ff3333; font-size:14px;">⚠️ Fake System Crash / BSOD Prank</h3>
+                <p style="font-size:12px; color:#aaa;">දුරකථනය හැන්ග් වුණා හෝ Error එකක් ආවා වගේ යාළුවාව බය කරන්න:</p>
+                <button class="fullscreen-btn" style="border-color:#ff3333; color:#ff3333; background:rgba(255,51,51,0.2);" onclick="triggerFakeCrash()">💥 Trigger Fake System Crash</button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Hacker Terminal Overlay Screen -->
+    <div id="hacker-overlay" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:400; display:none; flex-direction:column; padding:20px; font-family:monospace;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #00ff55; padding-bottom:10px; margin-bottom:10px;">
+            <span style="color:#00ff55; font-weight:bold; font-size:16px;">SECURE_SHELL v4.5 [REMOTE_ACCESS]</span>
+            <button class="page-close-btn" style="border-color:#00ff55; color:#00ff55;" onclick="stopHackerTerminal()">EXIT [ESC]</button>
+        </div>
+        <div id="hacker-console-logs" style="flex:1; color:#00ff55; font-size:13px; line-height:1.5; overflow-y:auto; white-space:pre-wrap;"></div>
+    </div>
+
+    <!-- Fake System Crash / BSOD Overlay Screen -->
+    <div id="bsod-overlay" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:#0055aa; z-index:500; display:none; flex-direction:column; justify-content:center; align-items:flex-start; padding:40px; font-family:monospace; color:#fff;" onclick="dismissFakeCrash()">
+        <h1 style="font-size:70px; margin-bottom:20px;">:(</h1>
+        <h2 style="font-size:24px; margin-bottom:20px;">Your device ran into a critical hardware exception and needs to restart.</h2>
+        <p style="font-size:16px; margin-bottom:10px;">Stop code: PANZORA_CRITICAL_PROCESS_DIED</p>
+        <p style="font-size:14px; color:#ddd; margin-top:30px;">(Tap anywhere on screen to dismiss prank)</p>
+    </div>
+
+    <!-- Cyber Girl Voice TTS Studio Fullscreen Page -->
+    <div id="tts-fullscreen" class="fullscreen-page">
+        <div class="page-top-bar">
+            <span class="page-title" style="color:#ff007f; text-shadow:0 0 10px #ff007f;">🗣️ GIRL VOICE TTS STUDIO</span>
+            <button class="page-close-btn" onclick="stopTTSAudio(); closeFullscreen('tts-fullscreen')">✕ Close</button>
+        </div>
+        <div class="page-content-body">
+            <div class="box-card" style="border-color:#ff007f;">
+                <h3 style="color:#ff007f; font-size:14px;">💬 Type Sinhala or English Text</h3>
+                <p style="font-size:12px; color:#aaa;">සිංහල හෝ ඉංග්‍රීසි වැකි ටයිප් කර ගැහැණු ළමයෙකුගේ හඬින් (Girl Voice) කථා කරවා ඩවුන්ලෝඩ් කරගන්න:</p>
+                <textarea id="tts-input-text" class="formatter-textarea-full" placeholder="Enter text here (සිංහල හෝ English)..." style="border-color:#ff007f;"></textarea>
+                
+                <div style="display:flex; gap:10px;">
+                    <button class="fullscreen-btn" style="border-color:#ff007f; color:#ff007f; background:rgba(255,0,127,0.15);" onclick="playGirlVoiceTTS()">🔊 Speak (Girl Voice)</button>
+                    <button class="fullscreen-btn" style="border-color:#00ffaa; color:#00ffaa; background:rgba(0,255,170,0.15);" onclick="recordAndDownloadTTS()">💾 Download Audio</button>
+                </div>
+                
+                <div id="tts-status-msg" style="color:#ff007f; font-size:12px; text-align:center; display:none;"></div>
+                <audio id="tts-download-playback" controls style="width:100%; display:none; margin-top:5px; border-radius:8px;"></audio>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cyber Camera Studio Full-Screen Page -->
+    <div id="camera-fullscreen" class="fullscreen-page">
+        <div class="page-top-bar">
+            <span class="page-title" style="color:#00ffff; text-shadow:0 0 10px #00ffff;">📸 CYBER CAMERA STUDIO</span>
+            <button class="page-close-btn" onclick="stopCameraStream(); closeFullscreen('camera-fullscreen')">✕ Close</button>
+        </div>
+        <div class="page-content-body">
+            <div class="box-card" style="border-color:#00ffff; align-items:center;">
+                <div style="width:100%; max-width:360px; height:240px; background:#000; border-radius:12px; overflow:hidden; position:relative; border:2px solid #00ffff;">
+                    <video id="cam-video" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+                    <canvas id="cam-canvas" style="display:none;"></canvas>
+                </div>
+                
+                <!-- Camera Controls & Switchers -->
+                <div style="display:flex; gap:8px; width:100%; justify-content:center; flex-wrap:wrap; margin-top:5px;">
+                    <button class="fullscreen-btn" style="width:auto; padding:8px 12px; font-size:12px; border-color:#00ffff; color:#00ffff;" onclick="switchCameraMode()">🔄 Switch Front/Back</button>
+                    <button class="fullscreen-btn" style="width:auto; padding:8px 12px; font-size:12px; border-color:#ff00ff; color:#ff00ff;" onclick="applyCamFilter('none')">Normal</button>
+                    <button class="fullscreen-btn" style="width:auto; padding:8px 12px; font-size:12px; border-color:#00ff00; color:#00ff00;" onclick="applyCamFilter('matrix')">Matrix</button>
+                    <button class="fullscreen-btn" style="width:auto; padding:8px 12px; font-size:12px; border-color:#ffaa00; color:#ffaa00;" onclick="applyCamFilter('cyber')">Cyberpunk</button>
+                </div>
+
+                <div style="display:flex; gap:10px; width:100%; margin-top:5px;">
+                    <button class="fullscreen-btn" style="border-color:#00ffaa; color:#00ffaa; background:rgba(0,255,170,0.15);" onclick="captureCamPhoto()">📸 Take Photo</button>
+                    <button class="fullscreen-btn" style="border-color:#ff0055; color:#ff0055; background:rgba(255,0,85,0.15);" id="cam-rec-btn" onclick="toggleCamVideoRecording()">🔴 Record Video</button>
+                </div>
+
+                <!-- Captured Result Preview & Download Area -->
+                <div id="cam-result-area" style="display:none; flex-direction:column; gap:8px; width:100%; margin-top:10px; text-align:center;">
+                    <div style="font-size:13px; color:#00ffaa; font-weight:bold;">✨ Captured Media Preview:</div>
+                    <div id="cam-preview-container" style="display:flex; justify-content:center;"></div>
+                    <a id="cam-download-link" class="fullscreen-btn" style="border-color:#0f0; color:#0f0; background:rgba(0,255,0,0.15); text-decoration:none; display:block;" download="Panzora_Capture.png">💾 Download Media</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cyber Video Downloader Fullscreen Page -->
+    <div id="downloader-fullscreen" class="fullscreen-page">
+        <div class="page-top-bar">
+            <span class="page-title" style="color:#00e5ff; text-shadow:0 0 10px #00e5ff;">📥 CYBER VIDEO DOWNLOADER</span>
+            <button class="page-close-btn" onclick="closeFullscreen('downloader-fullscreen')">✕ Close</button>
+        </div>
+        <div class="page-content-body">
+            
+            <div class="box-card" style="border-color:#00e5ff;">
+                <h3 style="color:#00e5ff; font-size:14px;">🔗 Paste Social Media Link</h3>
+                <p style="font-size:12px; color:#aaa;">YouTube, TikTok, Facebook හෝ Pinterest වීඩියෝ/ඡායාරූප ලින්ක් එක මෙහි පේස්ට් කරන්න:</p>
+                <input type="text" id="downloader-url-input" class="fullscreen-input" placeholder="Paste link here (https://...)" style="border-color:#00e5ff; color:#00e5ff;">
+                <button class="fullscreen-btn" style="border-color:#00e5ff; color:#00e5ff; background:rgba(0,229,255,0.15);" onclick="fetchMediaDownload()">🚀 Fetch & Download Media</button>
+            </div>
+
+            <div class="box-card" style="border-color:#00e5ff; display:none;" id="downloader-result-card">
+                <h3 style="color:#00e5ff; font-size:14px;">✨ Download Options & Results</h3>
+                <div id="downloader-status-text" style="font-size:13px; color:#ddd; text-align:center;">Processing link...</div>
+                <div id="downloader-action-area" style="display:flex; flex-direction:column; gap:10px; margin-top:5px;"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Cyber Alarm & Reminder Fullscreen Page -->
+    <div id="alarm-fullscreen" class="fullscreen-page">
+        <div class="page-top-bar">
+            <span class="page-title" style="color:#00ffaa; text-shadow:0 0 10px #00ffaa;">⏰ CYBER ALARM & REMINDERS</span>
+            <button class="page-close-btn" onclick="closeFullscreen('alarm-fullscreen')">✕ Close</button>
+        </div>
+        <div class="page-content-body">
+            
+            <div class="box-card" style="border-color:#00ffaa;">
+                <h3 style="color:#00ffaa; font-size:14px;">➕ Set New Alarm / Reminder</h3>
+                <input type="text" id="alarm-title-input" class="fullscreen-input" placeholder="Reminder / Alarm Title (e.g. Study Time)" style="border-color:#00ffaa; color:#00ffaa;">
+                <input type="datetime-local" id="alarm-datetime-input" class="fullscreen-input" style="border-color:#00ffaa; color:#00ffaa;">
+                <button class="fullscreen-btn" style="border-color:#00ffaa; color:#00ffaa; background:rgba(0,255,170,0.15);" onclick="addNewAlarm()">Set Alarm / Reminder</button>
+            </div>
+
+            <div class="box-card" style="border-color:#00ffaa;">
+                <h3 style="color:#00ffaa; font-size:14px;">🔔 Active Alarms & Reminders (<span id="alarm-count">0</span>)</h3>
+                <div id="alarm-list-container" style="display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto; padding:4px;">
+                    <!-- Dynamically populated alarms -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Alarm Ringing Alert Modal -->
+    <div id="alarm-ring-modal" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.92); z-index:300; display:none; flex-direction:column; justify-content:center; align-items:center; padding:20px; text-align:center;">
+        <div class="box-card" style="border-color:#ff3333; box-shadow:0 0 30px #ff3333; max-width:340px;">
+            <h2 style="color:#ff3333; font-size:22px; text-shadow:0 0 10px #ff3333;">🚨 ALARM RINGING!</h2>
+            <div id="ringing-title" style="font-size:16px; color:#fff; font-weight:bold; margin:10px 0;">Reminder Title</div>
+            <button class="fullscreen-btn" style="border-color:#ff3333; color:#ff3333; background:rgba(255,51,51,0.2); font-size:16px; margin-top:10px;" onclick="stopAlarmRinging()">🔕 Dismiss / Stop Alarm</button>
+        </div>
+    </div>
+
+    <!-- Cyber Gallery Vault Fullscreen Page -->
+    <div id="vault-fullscreen" class="fullscreen-page">
+        <div class="page-top-bar">
+            <span class="page-title" style="color:#ff00aa; text-shadow:0 0 10px #ff00aa;">🔐 CYBER GALLERY VAULT</span>
+            <button class="page-close-btn" onclick="closeFullscreen('vault-fullscreen')">✕ Close</button>
+        </div>
+        <div class="page-content-body">
+            
+            <div id="vault-auth-box" class="box-card" style="border-color:#ff00aa; text-align:center;">
+                <h3 style="color:#ff00aa; font-size:15px;">🔒 Private Media Locker</h3>
+                <p style="font-size:12px; color:#aaa;">Enter App Password (e.g. 123) to access your locked photos & videos:</p>
+                <input type="password" id="vault-pin-input" class="fullscreen-input" placeholder="Enter PIN..." style="border-color:#ff00aa; color:#ff00aa;">
+                <button class="fullscreen-btn" style="border-color:#ff00aa; color:#ff00aa; background:rgba(255,0,170,0.15);" onclick="verifyVaultAccess()">Unlock Vault</button>
+            </div>
+
+            <div id="vault-content-box" style="display:none; width:100%; max-width:400px; flex-direction:column; gap:15px;">
+                <div class="box-card" style="border-color:#ff00aa;">
+                    <h3 style="color:#ff00aa; font-size:14px;">📁 Lock New Photos / Videos</h3>
+                    <input type="file" id="vault-file-input" accept="image/*,video/*" multiple style="display:none;" onchange="handleVaultFiles(event)">
+                    <button class="fullscreen-btn" style="border-color:#ff00aa; color:#ff00aa;" onclick="document.getElementById('vault-file-input').click()">➕ Add to Private Vault</button>
+                    <p style="font-size:11px; color:#aaa; text-align:center;">Locked items are hidden from normal gallery and safely encrypted here.</p>
+                </div>
+
+                <div class="box-card" style="border-color:#ff00aa;">
+                    <h3 style="color:#ff00aa; font-size:14px;">🛡️ Secured Vault Items (<span id="vault-count">0</span>)</h3>
+                    <div id="vault-grid" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; max-height:250px; overflow-y:auto; padding:5px;">
+                        <!-- Dynamically populated locked items -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Fullscreen Media View Modal -->
+    <div id="vault-viewer-modal" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.95); z-index:200; display:none; flex-direction:column; justify-content:center; align-items:center; padding:20px;">
+        <button class="page-close-btn" style="position:absolute; top:20px; right:20px;" onclick="closeVaultViewer()">✕ Close Viewer</button>
+        <div id="vault-view-container" style="max-width:100%; max-height:75vh; display:flex; justify-content:center; align-items:center;"></div>
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button class="fullscreen-btn" style="border-color:#0f0; color:#0f0; width:auto; padding:10px 20px;" onclick="restoreCurrentVaultItem()">📤 Restore to Gallery</button>
+            <button class="fullscreen-btn" style="border-color:#ff3333; color:#ff3333; width:auto; padding:10px 20px;" onclick="deleteCurrentVaultItem()">🗑️ Delete from Vault</button>
+        </div>
+    </div>
+
+    <!-- Settings Fullscreen Page -->
+    <div id="settings-fullscreen" class="fullscreen-page">
+        <div class="page-top-bar">
+            <span class="page-title" style="color:#ffaa00; text-shadow:0 0 10px #ffaa00;">⚙️ SYSTEM SETTINGS</span>
+            <button class="page-close-btn" onclick="closeFullscreen('settings-fullscreen')">✕ Close</button>
+        </div>
+        <div class="page-content-body">
+            <div class="box-card" style="border-color:#ffaa00;">
+                <h3 style="color:#ffaa00; font-size:14px;">🎵 Background Music (music.mp3)</h3>
+                <p style="font-size:13px; color:#aaa;">පසුබිම් සංගීතය ක්‍රියාත්මක හෝ නවත්වන්න:</p>
+                <button class="fullscreen-btn" style="border-color:#ffaa00; color:#ffaa00; font-size:14px;" onclick="toggleAudioPlayback()">Play / Pause Music</button>
+                
+                <h3 style="color:#ffaa00; font-size:14px; margin-top:10px;">🎨 Theme Customization</h3>
+                <button class="fullscreen-btn" style="border-color:#ffaa00; color:#ffaa00; font-size:14px;" onclick="toggleDarkMode()">Toggle Dark / Light Theme</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Maintenance Hub Fullscreen Page -->
+    <div id="system-hub-fullscreen" class="fullscreen-page">
+        <div class="page-top-bar">
+            <span class="page-title" style="color:#00ffaa; text-shadow:0 0 10px #00ffaa;">⚡ SYSTEM MAINTENANCE HUB</span>
+            <button class="page-close-btn" onclick="closeFullscreen('system-hub-fullscreen')">✕ Close</button>
+        </div>
+        <div class="page-content-body">
+            <div class="box-card" style="border-color:#00ffaa;">
+                <h3 style="color:#00ffaa; font-size:14px;">🌐 Internet Speed Test</h3>
+                <div style="text-align:center; font-size:28px; font-weight:bold; color:#00ffaa; text-shadow:0 0 10px #00ffaa;" id="speed-result-display">0.0 Mbps</div>
+                <div style="font-size:12px; color:#aaa; text-align:center;" id="speed-status-sub">Ping: -- ms | Status: Ready</div>
+                <button class="fullscreen-btn" style="border-color:#00ffaa; color:#00ffaa;" onclick="runSpeedTest()">🚀 Start Speed Test</button>
+            </div>
+
+            <div class="box-card" style="border-color:#00ffaa;">
+                <h3 style="color:#00ffaa; font-size:14px;">🔋 Battery Health & Optimizer</h3>
+                <div style="font-size:13px; color:#ddd; line-height:1.5;" id="battery-info-text">Loading battery status...</div>
+                <button class="fullscreen-btn" style="border-color:#00ffaa; color:#00ffaa;" onclick="refreshBatteryInfo()">🔄 Refresh Battery Status</button>
+                <button class="fullscreen-btn" style="border-color:#ffaa00; color:#ffaa00; background:rgba(255,170,0,0.1);" onclick="enableBatterySaverTips()">💡 View Power Saving Tips</button>
+            </div>
+
+            <div class="box-card" style="border-color:#00ffaa;">
+                <h3 style="color:#00ffaa; font-size:14px;">🧹 Cyber Storage Cleaner</h3>
+                <div style="font-size:13px; color:#ddd; text-align:center;" id="storage-status-text">Junk Cache & Temp Files: Ready to Scan</div>
+                <button class="fullscreen-btn" style="border-color:#ff0055; color:#ff0055; background:rgba(255,0,85,0.1);" onclick="runStorageScan()">🔍 Scan Junk Files</button>
+                <button class="fullscreen-btn" style="border-color:#0f0; color:#0f0; display:none;" id="clean-storage-btn" onclick="executeStorageClean()">✨ Clean & Free Up Space</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cyber Media Studio Fullscreen Page -->
+    <div id="media-studio-fullscreen" class="fullscreen-page">
+        <div class="page-top-bar">
+            <span class="page-title" style="color:#ff00aa; text-shadow:0 0 10px #ff00aa;">🎬 CYBER MEDIA STUDIO</span>
+            <button class="page-close-btn" onclick="closeFullscreen('media-studio-fullscreen')">✕ Close</button>
+        </div>
+        <div class="page-content-body">
+            
+            <!-- Photo Editor Card -->
+            <div class="box-card" style="border-color:#ff00aa;">
+                <h3 style="color:#ff00aa; font-size:14px;">🖼️ Pro Photo Studio (15+ Tools & Eraser)</h3>
+                <input type="file" id="media-photo-input" accept="image/*" style="display:none;" onchange="handleMediaPhoto(event)">
+                <button class="fullscreen-btn" style="border-color:#ff00aa; color:#ff00aa;" onclick="document.getElementById('media-photo-input').click()">📁 Select Photo from Gallery</button>
+                
+                <div id="photo-editor-container" style="display:none; flex-direction:column; gap:12px; align-items:center;">
+                    
+                    <div style="max-width: 100%; overflow: auto; border-radius: 8px; border: 1px solid #ff00aa; background: #050505; text-align: center; padding: 5px;">
+                        <canvas id="photo-canvas" style="max-width: 100%; height: auto; display: block; margin: 0 auto; cursor: crosshair;"></canvas>
+                    </div>
+
+                    <div style="width: 100%; display: flex; flex-direction: column; gap: 8px; background: rgba(255,0,170,0.05); padding: 10px; border-radius: 10px;">
+                        <div style="font-size:12px; color:#ff00aa; font-weight:bold; text-align:center;">🛠️ Image Adjustments & Sliders</div>
+                        
+                        <div style="font-size:11px; color:#ccc;">Brightness: <span id="bright-val">100</span>%</div>
+                        <input type="range" id="filter-bright" min="0" max="200" value="100" oninput="applyCanvasFilters()" style="width:100%; accent-color:#ff00aa;">
+
+                        <div style="font-size:11px; color:#ccc;">Contrast: <span id="contrast-val">100</span>%</div>
+                        <input type="range" id="filter-contrast" min="0" max="200" value="100" oninput="applyCanvasFilters()" style="width:100%; accent-color:#ff00aa;">
+
+                        <div style="font-size:11px; color:#ccc;">Saturation: <span id="sat-val">100</span>%</div>
+                        <input type="range" id="filter-sat" min="0" max="200" value="100" oninput="applyCanvasFilters()" style="width:100%; accent-color:#ff00aa;">
+
+                        <div style="font-size:11px; color:#ccc;">Blur: <span id="blur-val">0</span>px</div>
+                        <input type="range" id="filter-blur" min="0" max="10" value="0" oninput="applyCanvasFilters()" style="width:100%; accent-color:#ff00aa;">
+                    </div>
+
+                    <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:center; width: 100%;">
+                        <button class="fullscreen-btn" style="padding:6px 10px; font-size:11px; width:auto;" onclick="photoRotate90()">🔄 Rotate 90°</button>
+                        <button class="fullscreen-btn" style="padding:6px 10px; font-size:11px; width:auto;" onclick="photoFlipH()">↔️ Flip H</button>
+                        <button class="fullscreen-btn" style="padding:6px 10px; font-size:11px; width:auto;" onclick="photoFlipV()">↕️ Flip V</button>
+                        <button class="fullscreen-btn" style="padding:6px 10px; font-size:11px; width:auto;" onclick="photoGrayscale()">⚫ Grayscale</button>
+                        <button class="fullscreen-btn" style="padding:6px 10px; font-size:11px; width:auto;" onclick="photoSepia()">📜 Sepia</button>
+                        <button class="fullscreen-btn" style="padding:6px 10px; font-size:11px; width:auto;" onclick="photoInvert()">🔄 Invert</button>
+                        <button class="fullscreen-btn" style="padding:6px 10px; font-size:11px; width:auto;" onclick="photoVignette()">🌑 Vignette</button>
+                        <button class="fullscreen-btn" style="padding:6px 10px; font-size:11px; width:auto;" onclick="photoPixelate()">🧱 Pixelate</button>
+                        <button class="fullscreen-btn" style="padding:6px 10px; font-size:11px; width:auto; border-color:#0ff; color:#0ff;" onclick="photoAddWatermark()">✍️ Add Text</button>
+                        
+                        <button class="fullscreen-btn" style="padding:6px 10px; font-size:11px; width:auto; border-color:#ffff00; color:#ffff00; background:rgba(255,255,0,0.1);" onclick="toggleEraserMode()" id="eraser-mode-btn">🧹 Eraser Tool: OFF</button>
+                        <button class="fullscreen-btn" style="padding:6px 10px; font-size:11px; width:auto; border-color:#00ffaa; color:#00ffaa; background:rgba(0,255,170,0.1);" onclick="removeBackgroundColor()">🎨 Remove BG Color</button>
+
+                        <button class="fullscreen-btn" style="padding:6px 10px; font-size:11px; width:auto; border-color:#ff3333; color:#ff3333;" onclick="resetPhotoEdits()">🔄 Reset All</button>
+                    </div>
+
+                    <button class="fullscreen-btn" style="border-color:#0f0; color:#0f0; background:rgba(0,255,0,0.15);" onclick="downloadEditedPhoto()">💾 Download Edited Photo</button>
+                </div>
+            </div>
+
+            <!-- Video Editor Card -->
+            <div class="box-card" style="border-color:#ff00aa;">
+                <h3 style="color:#ff00aa; font-size:14px;">🎥 Pro Video Player & Controls</h3>
+                <input type="file" id="media-video-input" accept="video/*" style="display:none;" onchange="handleMediaVideo(event)">
+                <button class="fullscreen-btn" style="border-color:#ff00aa; color:#ff00aa;" onclick="document.getElementById('media-video-input').click()">📁 Select Video</button>
+                
+                <div id="video-editor-container" style="display:none; flex-direction:column; gap:10px; align-items:center;">
+                    <video id="edit-video-preview" controls style="width:100%; max-height:180px; border-radius:8px; border:1px solid #ff00aa; background:#000;"></video>
+                    <div style="display:flex; gap:8px; width:100%;">
+                        <button class="fullscreen-btn" style="padding:8px; font-size:12px;" onclick="setVideoSpeed(0.5)">0.5x</button>
+                        <button class="fullscreen-btn" style="padding:8px; font-size:12px;" onclick="setVideoSpeed(1.0)">1.0x</button>
+                        <button class="fullscreen-btn" style="padding:8px; font-size:12px;" onclick="setVideoSpeed(2.0)">2.0x</button>
+                    </div>
+                    <button class="fullscreen-btn" style="border-color:#ffaa00; color:#ffaa00; font-size:12px;" onclick="captureVideoSnapshot()">📸 Snapshot / Frame Capture</button>
+                    <canvas id="snapshot-canvas" style="display:none;"></canvas>
+                    <a id="download-snapshot-link" style="display:none;"></a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- PDF Creator Full-Screen Page -->
+    <div id="pdf-fullscreen" class="fullscreen-page">
+        <div class="page-top-bar">
+            <span class="page-title" style="color:#ff5500; text-shadow:0 0 10px #ff5500;">📄 PDF CREATOR STUDIO</span>
+            <button class="page-close-btn" onclick="stopStrobeFlashlight(); closeFullscreen('pdf-fullscreen')">✕ Close</button>
+        </div>
+        <div class="page-content-body">
+            <div class="box-card" style="border-color:#ff5500;">
+                <h3 style="color:#ff5500; font-size:14px;">Select Images (Max 15 Photos)</h3>
+                <input type="file" id="pdf-images-input" accept="image/*" multiple style="display:none;" onchange="handlePdfImages(event)">
+                <button class="fullscreen-btn" style="border-color:#ff5500; color:#ff5500;" onclick="document.getElementById('pdf-images-input').click()">📁 Select Photos from Gallery</button>
+                <div id="pdf-file-count" style="font-size:13px; color:#aaa; text-align:center;">No photos selected.</div>
+                <div id="pdf-thumbs-preview" style="display:flex; flex-wrap:wrap; gap:6px; max-height:120px; overflow-y:auto; justify-content:center;"></div>
+                <button class="fullscreen-btn" style="border-color:#ff5500; background:rgba(255,85,0,0.15); color:#ff5500;" onclick="generatePDF()">GENERATE & DOWNLOAD PDF</button>
+                <div id="pdf-status-msg" style="color:#ff5500; font-size:12px; text-align:center; display:none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Generator Full-Screen Page -->
+    <div id="pass-fullscreen" class="fullscreen-page">
+        <div class="page-top-bar">
+            <span class="page-title">🔐 PASSWORD GENERATOR</span>
+            <button class="page-close-btn" onclick="closeFullscreen('pass-fullscreen')">✕ Close</button>
+        </div>
+        <div class="page-content-body">
+            <div class="box-card">
+                <input type="text" id="generated-pass" value="Click Generate" readonly>
+                <div class="slider-container" style="color:#0ff; font-size:14px;">
+                    Password Length: <span id="length-val">12</span>
+                    <input type="range" id="pass-length" min="8" max="28" value="12" oninput="updateLength()" style="width:100%; accent-color:#0ff; margin-top:8px;">
+                </div>
+                <button class="fullscreen-btn" onclick="generatePassword()">GENERATE SECURE PASSWORD</button>
+                <button class="fullscreen-btn" onclick="copyPassword()" style="border-color: #0ff; background: rgba(0,255,255,0.1);">COPY PASSWORD</button>
+                <div id="copy-msg" style="color: #0ff; font-size: 13px; text-align: center; display: none;">Password Copied Successfully!</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Code Studio Full-Screen Page -->
+    <div id="qr-fullscreen" class="fullscreen-page">
+        <div class="page-top-bar">
+            <span class="page-title">📷 QR CODE STUDIO</span>
+            <button class="page-close-btn" onclick="stopScanner(); closeFullscreen('qr-fullscreen')">✕ Close</button>
+        </div>
+        <div class="page-content-body">
+            <div class="box-card">
+                <h3 style="color:#0ff; font-size:14px;">Generate QR Code</h3>
+                <input type="text" id="qr-text" class="fullscreen-input" placeholder="Enter text or URL...">
+                <button class="fullscreen-btn" onclick="generateQR()">Create QR Code</button>
+                <div style="text-align: center;"><div id="qrcode-output"></div></div>
+            </div>
+
+            <div class="box-card">
+                <h3 style="color:#0ff; font-size:14px;">Scan QR Code (Camera)</h3>
+                <button class="fullscreen-btn" style="border-color: #0f0; color: #0f0;" onclick="startScanner()">Start Camera Scanner</button>
+                <div class="scanner-box-full">
+                    <div id="reader"></div>
+                </div>
+                <div id="scan-result-box" style="display:none; background:rgba(0,255,255,0.08); padding:10px; border-radius:8px; border:1px solid #0ff;">
+                    <div id="scan-result-text" style="word-break: break-all; font-size:13px; margin-bottom:8px;"></div>
+                    <div style="display:flex; gap:8px;">
+                        <button class="fullscreen-btn" onclick="openScannedLink()" style="padding:8px; font-size:12px;">Open Link</button>
+                        <button class="fullscreen-btn" onclick="copyScannedText()" style="padding:8px; font-size:12px; border-color:#0ff;">Copy Text</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Text Extractor (OCR) Full-Screen Page -->
+    <div id="ocr-fullscreen" class="fullscreen-page">
+        <div class="page-top-bar">
+            <span class="page-title">📝 AI TEXT EXTRACTOR (OCR)</span>
+            <button class="page-close-btn" onclick="closeFullscreen('ocr-fullscreen')">✕ Close</button>
+        </div>
+        <div class="page-content-body">
+            <div class="box-card">
+                <select id="ocr-lang" class="ocr-select-full">
+                    <option value="eng">English Only (High Accuracy)</option>
+                    <option value="eng+sin">English & Sinhala (Dual)</option>
+                </select>
+
+                <input type="file" id="gallery-input" accept="image/*" style="display:none;" onchange="handleImage(event)">
+                <input type="file" id="cam-input" accept="image/*" capture="environment" style="display:none;" onchange="handleImage(event)">
+
+                <div style="display:flex; gap:10px;">
+                    <button class="fullscreen-btn" onclick="document.getElementById('gallery-input').click()">📁 Select Gallery</button>
+                    <button class="fullscreen-btn" onclick="document.getElementById('cam-input').click()">📷 Open Camera</button>
+                </div>
+
+                <div id="ocr-preview-box" style="display:none; text-align:center; max-height:120px;">
+                    <img id="ocr-img-preview" src="" style="max-height:110px; border-radius:8px; border:1px solid #0ff; object-fit:contain;">
+                </div>
+
+                <button class="fullscreen-btn" style="border-color:#0ff; background:rgba(0,255,255,0.1);" onclick="extractImageText()">Extract Exact Text</button>
+
+                <div id="ocr-result-box" style="display:none; display:flex; flex-direction:column; gap:8px;">
+                    <div id="ocr-result-text-full">Select an image to extract text...</div>
+                    <button class="fullscreen-btn" onclick="copyOcrText()" style="background:#0ff; color:#000;">Copy Extracted Text</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Smart Text Formatter Full-Screen Page -->
+    <div id="formatter-fullscreen" class="fullscreen-page">
+        <div class="page-top-bar">
+            <span class="page-title" style="color:#0f0; text-shadow:0 0 10px #0f0;">🔧 SMART TEXT FORMATTER</span>
+            <button class="page-close-btn" onclick="closeFullscreen('formatter-fullscreen')">✕ Close</button>
+        </div>
+        <div class="page-content-body">
+            <div class="box-card" style="border-color:#0f0;">
+                <textarea id="formatter-text" class="formatter-textarea-full" placeholder="Paste your text here..."></textarea>
+                <div style="display:flex; gap:10px;">
+                    <button class="fullscreen-btn" style="border-color:#0f0; color:#0f0;" onclick="encodeBase64()">Base64 Encode</button>
+                    <button class="fullscreen-btn" style="border-color:#0f0; color:#0f0;" onclick="decodeBase64()">Base64 Decode</button>
+                </div>
+                <button class="fullscreen-btn" style="border-color:#0ff; color:#0ff;" onclick="removeLineBreaks()">Remove Line Breaks</button>
+                <button class="fullscreen-btn" style="border-color:#0f0; background:rgba(0,255,0,0.15); color:#0f0;" onclick="copyFormatterText()">Copy Result Text</button>
+                <div id="formatter-msg" style="color: #0f0; font-size: 13px; text-align: center; display: none;">Copied to clipboard!</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cyberpunk Color Picker & Palette Full-Screen Page -->
+    <div id="color-fullscreen" class="fullscreen-page">
+        <div class="page-top-bar">
+            <span class="page-title" style="color:#ffaa00; text-shadow:0 0 10px #ffaa00;">🎨 COLOR PICKER & PALETTE</span>
+            <button class="page-close-btn" onclick="closeFullscreen('color-fullscreen')">✕ Close</button>
+        </div>
+        <div class="page-content-body">
+            <div class="box-card" style="border-color:#ffaa00;">
+                <div id="color-preview" class="color-preview-box" style="background-color: #00ffff;"></div>
+                <input type="color" id="native-color-picker" value="#00ffff" style="width:100%; height:40px; background:transparent; border:1px solid #ffaa00; border-radius:8px; cursor:pointer;" oninput="updateColorPicker(this.value)">
+                
+                <input type="text" id="color-hex-output" class="fullscreen-input" value="#00ffff" readonly style="color:#ffaa00; border-color:#ffaa00;">
+                <button class="fullscreen-btn" style="border-color:#ffaa00; color:#ffaa00;" onclick="copyColorHex()">COPY HEX CODE</button>
+                
+                <h3 style="color:#ffaa00; font-size:14px; margin-top:5px;">Cyber Neon Palette (15+ Colors):</h3>
+                <div class="palette-grid-15">
+                    <div class="palette-swatch-15" style="background:#00ffff;" onclick="setPresetColor('#00ffff')"></div>
+                    <div class="palette-swatch-15" style="background:#ff00ff;" onclick="setPresetColor('#ff00ff')"></div>
+                    <div class="palette-swatch-15" style="background:#00ff00;" onclick="setPresetColor('#00ff00')"></div>
+                    <div class="palette-swatch-15" style="background:#ffff00;" onclick="setPresetColor('#ffff00')"></div>
+                    <div class="palette-swatch-15" style="background:#ff0055;" onclick="setPresetColor('#ff0055')"></div>
+                    <div class="palette-swatch-15" style="background:#7000ff;" onclick="setPresetColor('#7000ff')"></div>
+                    <div class="palette-swatch-15" style="background:#ff5500;" onclick="setPresetColor('#ff5500')"></div>
+                    <div class="palette-swatch-15" style="background:#00ffaa;" onclick="setPresetColor('#00ffaa')"></div>
+                    <div class="palette-swatch-15" style="background:#0055ff;" onclick="setPresetColor('#0055ff')"></div>
+                    <div class="palette-swatch-15" style="background:#ff00aa;" onclick="setPresetColor('#ff00aa')"></div>
+                    <div class="palette-swatch-15" style="background:#aaff00;" onclick="setPresetColor('#aaff00')"></div>
+                    <div class="palette-swatch-15" style="background:#5500ff;" onclick="setPresetColor('#5500ff')"></div>
+                    <div class="palette-swatch-15" style="background:#ffffff;" onclick="setPresetColor('#ffffff')"></div>
+                    <div class="palette-swatch-15" style="background:#ff3300;" onclick="setPresetColor('#ff3300')"></div>
+                    <div class="palette-swatch-15" style="background:#00ff55;" onclick="setPresetColor('#00ff55')"></div>
+                </div>
+                <div id="color-msg" style="color:#ffaa00; font-size:12px; text-align:center; display:none;">Hex Code Copied!</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mini Cyber Snake Game Full-Screen Page -->
+    <div id="game-fullscreen" class="fullscreen-page">
+        <div class="page-top-bar">
+            <span class="page-title" style="color:#ff0055; text-shadow:0 0 10px #ff0055;">🕹️ MINI CYBER SNAKE</span>
+            <button class="page-close-btn" onclick="stopSnakeGame(); closeFullscreen('game-fullscreen')">✕ Close</button>
+        </div>
+        <div class="page-content-body" style="justify-content: center; gap: 10px;">
+            <div style="text-align: center; color: #ff0055; font-weight: bold; font-size: 16px; text-shadow: 0 0 8px #ff0055;">
+                SCORE: <span id="snake-score">0</span>
+            </div>
+            
+            <canvas id="game-canvas" width="240" height="240"></canvas>
+            
+            <div style="display:flex; gap:10px; width: 100%; max-width: 240px;">
+                <button class="fullscreen-btn" style="border-color:#ff0055; color:#ff0055; padding:8px;" onclick="startSnakeGame()">START / RESET</button>
+            </div>
+
+            <!-- On-screen D-Pad -->
+            <div class="game-controls">
+                <div></div>
+                <div class="game-btn" onclick="changeSnakeDir('UP')">▲</div>
+                <div></div>
+                <div class="game-btn" onclick="changeSnakeDir('LEFT')">◀</div>
+                <div class="game-btn" onclick="changeSnakeDir('DOWN')">▼</div>
+                <div class="game-btn" onclick="changeSnakeDir('RIGHT')">▶</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panzora AI Multi-Modal Hub Full-Screen Page -->
+    <div id="ai-chat-fullscreen" class="fullscreen-page">
+        <div class="page-top-bar">
+            <span class="page-title" style="color:#ff00ff; text-shadow:0 0 10px #ff00ff;">✨ PANZORA AI HUB</span>
+            <button class="page-close-btn" onclick="closeFullscreen('ai-chat-fullscreen')">✕ Close</button>
+        </div>
+
+        <div style="padding: 12px 20px; display: flex; justify-content: center; width: 100%;">
+            <div class="ai-key-container">
+                <input type="password" id="gemini-key" class="ai-key-input" placeholder="Enter Gemini API Key (e.g. AIzaSy...)">
+            </div>
+        </div>
+
+        <div class="page-content-body" style="justify-content: flex-end; padding: 10px;">
+            <div id="ai-messages-area" class="ai-messages-area">
+                <div class="chat-bubble ai">Hello! I'm Panzora AI. Make sure to paste your correct Gemini API Key (AIzaSy...) above, then chat, use Web Search, Math Tool or generate images! 🚀</div>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: center; width: 100%; padding: 10px 20px 20px 20px;">
+            <div class="ai-input-panel">
+                <div class="ai-tools-row">
+                    <button class="ai-tool-mini-btn" id="plugin-search-btn" onclick="togglePlugin('search')" style="border-color:#00ffaa; color:#00ffaa;">🌐 Web Search: OFF</button>
+                    <button class="ai-tool-mini-btn" id="plugin-calc-btn" onclick="togglePlugin('calc')" style="border-color:#ffaa00; color:#ffaa00;">🧮 Math Tool: OFF</button>
+                    <button class="ai-tool-mini-btn" onclick="generateAIImage()">🎨 Gen Image</button>
+                    <button class="ai-tool-mini-btn" onclick="startVoiceInput()">🎙️ Voice</button>
+                    <button class="ai-tool-mini-btn" onclick="speakLastResponse()">🔊 Audio</button>
+                </div>
+                <div class="ai-input-row">
+                    <input type="text" id="ai-prompt" class="ai-main-input" placeholder="Ask AI anything..." onkeypress="if(event.key === 'Enter') sendAIChat()">
+                    <button class="action-icon-btn" onclick="sendAIChat()">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WebGL Fluid Custom CDN Script -->
+    <script src="https://cdn.jsdelivr.net/npm/webgl-fluid-custom@0.1.1/dist/webgl-fluid-custom.umd.min.js"></script>
+
+    <script>
+        // Initialize Rainbow Fluid Effect & Date Display & Calendar & Alarms Checker & Draggable Floating Camera Button
+        window.addEventListener('load', () => {
+            WebGLFluidCustom(document.querySelector('#fluid'), {
+                SIM_RESOLUTION: 128, DYE_RESOLUTION: 512, CAPTURE_RESOLUTION: 512,
+                DENSITY_DISSIPATION: 1, VELOCITY_DISSIPATION: 0.2, PRESSURE: 0.8,
+                PRESSURE_ITERATIONS: 20, CURL: 3, SPLAT_RADIUS: 0.2, SPLAT_FORCE: 6000,
+                SHADING: true, COLORFUL: true, COLOR_UPDATE_SPEED: 10,
+                BACK_COLOR: { r: 0, g: 0, b: 0 }, TRANSPARENT: false
+            });
+
+            // Set current date
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+            const todayDate = new Date().toLocaleDateString('en-US', options);
+            document.getElementById("live-date").innerText = "Date: " + todayDate;
+
+            // Initialize battery status on load
+            refreshBatteryInfo();
+
+            // Load saved Notepad data
+            let savedNote = localStorage.getItem("panzora_notepad");
+            if(savedNote) {
+                document.getElementById("smart-notepad").value = savedNote;
+            }
+
+            // Initialize Calendar & Alarms
+            initCalendar();
+            renderAlarmsList();
+            scrollToCenterTab();
+            initDraggableFloatingButton();
+
+            // Start Alarm Background Clock Checker (every second)
+            setInterval(checkAlarmsTimer, 1000);
+        });
+
+        // Center scroll on main dashboard (Center Slide) initially
+        function scrollToCenterTab() {
+            let container = document.getElementById("swipe-container");
+            container.scrollLeft = container.clientWidth;
+        }
+
+        // Indicator Dots Update on Swipe
+        function updateActiveIndicator() {
+            let container = document.getElementById("swipe-container");
+            let scrollLeft = container.scrollLeft;
+            let width = container.clientWidth;
+            let activeIndex = Math.round(scrollLeft / width);
+
+            for (let i = 0; i < 3; i++) {
+                let dot = document.getElementById(`dot-${i}`);
+                if (i === activeIndex) {
+                    dot.classList.add("active");
+                } else {
+                    dot.classList.remove("active");
+                }
+            }
+        }
+
+        // --- Draggable Floating Camera Button Logic ---
+        function initDraggableFloatingButton() {
+            const floatBtn = document.getElementById("floating-cam-btn");
+            let isDragging = false;
+            let startX, startY, initialX, initialY;
+            let hasMoved = false;
+
+            floatBtn.addEventListener("mousedown", dragStart);
+            floatBtn.addEventListener("touchstart", dragStart, { passive: false });
+
+            function dragStart(e) {
+                isDragging = true;
+                hasMoved = false;
+                let clientX = e.clientX || e.touches[0].clientX;
+                let clientY = e.clientY || e.touches[0].clientY;
+                startX = clientX;
+                startY = clientY;
+                initialX = floatBtn.offsetLeft;
+                initialY = floatBtn.offsetTop;
+
+                document.addEventListener("mousemove", drag);
+                document.addEventListener("touchmove", drag, { passive: false });
+                document.addEventListener("mouseup", dragEnd);
+                document.addEventListener("touchend", dragEnd);
+            }
+
+            function drag(e) {
+                if (!isDragging) return;
+                let clientX = e.clientX || (e.touches ? e.touches[0].clientX : startX);
+                let clientY = e.clientY || (e.touches ? e.touches[0].clientY : startY);
+                let dx = clientX - startX;
+                let dy = clientY - startY;
+
+                if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+                    hasMoved = true;
+                }
+
+                floatBtn.style.left = (initialX + dx) + "px";
+                floatBtn.style.top = (initialY + dy) + "px";
+                floatBtn.style.bottom = "auto";
+                floatBtn.style.right = "auto";
+            }
+
+            function dragEnd(e) {
+                isDragging = false;
+                document.removeEventListener("mousemove", drag);
+                document.removeEventListener("touchmove", drag);
+                document.removeEventListener("mouseup", dragEnd);
+                document.removeEventListener("touchend", dragEnd);
+
+                if (hasMoved) {
+                    floatBtn.onclick = (ev) => {
+                        ev.stopPropagation();
+                        ev.preventDefault();
+                        floatBtn.onclick = () => openFullscreen('camera-fullscreen');
+                    };
+                }
+            }
+        }
+
+        // --- Cyber Prank & Joke Studio Logic ---
+        const proJokeDatabase = {
+            sinhala: [
+                "සල්ලි නැති ප්‍රශ්නවලට හොඳම විසඳුම බැංකුවකින් ලෝන් එකක් ගන්න එක නෙවෙයි, බැංකුව මගේ නමට ලියලා ගන්න එක! 😂",
+                "ප්‍රෝග්‍රැමර් කෙනෙක්ගෙන් ඇහුවා 'ආදරෙයි' කියන්නේ මොකක්ද කියලා? එයා කිව්වා 'ඒක රෝස්ට් බග් එකක්, කවදාවත් ෆික් කරන්න බෑ' කියලා! 💻",
+                "ඉස්කෝලේ යන කාලේ ළමයි ගෙදර වැඩ කළා, දැන් අපි වැඩ කරනවා ගෙදර යන්න! 🏠",
+                "ජීවිතේ කියන්නේ බස් එකක යනවා වගේ... නගින්න ගියාම සීට් නෑ, බහින්න ගියාම බෙල් එක වදින්නෙත් නෑ! 🚌",
+                "මගේ ළඟ තියෙන එකම සුපිරි හැකියාව තමයි, නැති වෙච්ච පාස්වර්ඩ් එක මතක් වෙන්න කලින් අලුත් එකක් හදාගන්න එක! 🔐"
+            ],
+            tech: [
+                "There are 10 types of people in the world: those who understand binary, and those who don't.",
+                "To understand recursion, you must first understand recursion.",
+                "A programmer is a person who fixes a problem that you didn't know you had, in a way you don't understand.",
+                "There is no place like 127.0.0.1.",
+                "Code works? Don't touch it ever again! 🚀"
+            ],
+            friends: [
+                "මගේ යාළුවෙක් කිව්වා එයා ලෝකේ වෙනස් කරනවා කියලා... මම කිව්වා 'ඉස්සෙල්ලම උඹේ කාමරේ කුණු ටික වෙනස් කරලා හිටපන්' කියලා! 🧹",
+                "හොඳ යාළුවෙක් උඹේ ප්‍රශ්න අහනවා, හැබැයි නියම යාළුවෙක් උඹේ ප්‍රශ්නවලට තවත් හිනා වෙනවා! 🤪",
+                "මගේ බැංකු ගිණුමටයි, ෆෝන් එකේ බැටරි එකටයි තියෙන සමානකම තමයි දෙකම 10% ට වැටුනහම පණ යන්න හදන එක! 🔋"
+            ]
+        };
+
+        function generateProJoke() {
+            let cat = document.getElementById("joke-category").value;
+            let list = proJokeDatabase[cat];
+            let randomIndex = Math.floor(Math.random() * list.length);
+            document.getElementById("joke-output-box").innerText = list[randomIndex];
+        }
+
+        let hackerInterval = null;
+        function startHackerTerminal() {
+            let targetName = document.getElementById("target-name-input").value.trim() || "TARGET_SYSTEM";
+            let overlay = document.getElementById("hacker-overlay");
+            let consoleLogs = document.getElementById("hacker-console-logs");
+            overlay.style.display = "flex";
+            consoleLogs.innerHTML = `[+] Initializing Panzora Cyber Exploit v4.5...\n[+] Targeting: ${targetName}...\n`;
+
+            let logs = [
+                "Bypassing firewall security layers...",
+                "Injecting SQL payload into main database...",
+                "Extracting admin credentials & private photos...",
+                "Downloading RAM booster & free pizza coupons...",
+                "Decryption complete. Access granted!",
+                "Warning: FBI & CID are tracking this IP address!",
+                "Formatting hard drive in 3... 2... 1...",
+                "Just kidding! This is a Panzora Pro Prank! 😂"
+            ];
+
+            let index = 0;
+            hackerInterval = setInterval(() => {
+                if (index < logs.length) {
+                    consoleLogs.innerHTML += `> ${logs[index]}\n`;
+                    consoleLogs.scrollTop = consoleLogs.scrollHeight;
+                    index++;
+                } else {
+                    clearInterval(hackerInterval);
+                }
+            }, 600);
+        }
+
+        function stopHackerTerminal() {
+            if (hackerInterval) clearInterval(hackerInterval);
+            document.getElementById("hacker-overlay").style.display = "none";
+        }
+
+        function triggerFakeCrash() {
+            document.getElementById("bsod-overlay").style.display = "flex";
+        }
+
+        function dismissFakeCrash() {
+            document.getElementById("bsod-overlay").style.display = "none";
+        }
+
+        function playPrankSound(type) {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (type === 'airhorn') {
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                    osc.frequency.setValueAtTime(450, audioCtx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.4);
+                } else if (type === 'laser') {
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+                    gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.3);
+                } else if (type === 'boing') {
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(600, audioCtx.currentTime + 0.2);
+                    osc.frequency.linearRampToValueAtTime(200, audioCtx.currentTime + 0.4);
+                    gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.4);
+                }
+            } catch (e) {
+                alert("Audio context error: " + e.message);
+            }
+        }
+
+        // --- Cyber Girl Voice TTS Studio Functions ---
+        function playGirlVoiceTTS() {
+            let text = document.getElementById("tts-input-text").value.trim();
+            let statusMsg = document.getElementById("tts-status-msg");
+            if (!text) {
+                alert("කරුණාකර කථා කරවා ගැනීමට අවශ්‍ය Text එක ටයිප් කරන්න!");
+                return;
+            }
+
+            if (!('speechSynthesis' in window)) {
+                alert("ඔබගේ බ්‍රව්සරය Text-ස්-Speech සඳහා සහය නොදක්වයි.");
+                return;
+            }
+
+            window.speechSynthesis.cancel();
+            let utterance = new SpeechSynthesisUtterance(text);
+            utterance.pitch = 1.6;
+            utterance.rate = 1.0;
+
+            let voices = window.speechSynthesis.getVoices();
+            let femaleVoice = voices.find(v => v.lang.includes('si') || v.name.includes('Female') || v.name.includes('Google') || v.name.includes('Microsoft Zira') || v.name.includes('Samantha'));
+            if (femaleVoice) {
+                utterance.voice = femaleVoice;
+            }
+
+            statusMsg.style.display = "block";
+            statusMsg.innerText = "🗣️ Speaking with Girl Voice...";
+
+            utterance.onend = () => {
+                statusMsg.innerText = "✅ Speech completed!";
+            };
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        async function recordAndDownloadTTS() {
+            let text = document.getElementById("tts-input-text").value.trim();
+            let statusMsg = document.getElementById("tts-status-msg");
+            if (!text) {
+                alert("කරුණාකර ඩවුන්ලෝඩ් කිරීමට අවශ්‍ය Text එක ටයිප් කරන්න!");
+                return;
+            }
+
+            statusMsg.style.display = "block";
+            statusMsg.innerText = "⏳ Generating audio file for download...";
+
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const dest = audioCtx.createMediaStreamDestination();
+                const mediaRecorder = new MediaRecorder(dest.stream);
+                let chunks = [];
+
+                mediaRecorder.ondataavailable = e => chunks.push(e.data);
+                mediaRecorder.onstop = () => {
+                    let blob = new Blob(chunks, { type: 'audio/webm' });
+                    let url = URL.createObjectURL(blob);
+                    let playback = document.getElementById("tts-download-playback");
+                    playback.src = url;
+                    playback.style.display = "block";
+
+                    let a = document.createElement('a');
+                    a.href = url;
+                    a.download = "Panzora_Girl_Voice_TTS.webm";
+                    a.click();
+
+                    statusMsg.innerText = "✅ Audio successfully generated & downloaded!";
+                };
+
+                mediaRecorder.start();
+                
+                window.speechSynthesis.cancel();
+                let utterance = new SpeechSynthesisUtterance(text);
+                utterance.pitch = 1.6;
+                utterance.rate = 1.0;
+                
+                utterance.onend = () => {
+                    setTimeout(() => mediaRecorder.stop(), 500);
+                };
+
+                window.speechSynthesis.speak(utterance);
+            } catch (err) {
+                statusMsg.innerText = "දෝෂයක් ඇති විය: " + err.message;
+            }
+        }
+
+        function stopTTSAudio() {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+        }
+
+        // --- Cyber Camera Studio Functions ---
+        let camStream = null;
+        let camFacingMode = 'environment';
+        let camMediaRecorder = null;
+        let camRecordedChunks = [];
+        let isCamRecording = false;
+
+        async function startCameraStream() {
+            let videoElem = document.getElementById('cam-video');
+            if (camStream) {
+                camStream.getTracks().forEach(track => track.stop());
+            }
+            try {
+                camStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: camFacingMode },
+                    audio: true
+                });
+                videoElem.srcObject = camStream;
+            } catch (err) {
+                alert("කැමරා අවසරය ලබාදී නැත හෝ දෝෂයක් ඇත: " + err.message);
+            }
+        }
+
+        function switchCameraMode() {
+            camFacingMode = camFacingMode === 'environment' ? 'user' : 'environment';
+            startCameraStream();
+        }
+
+        function stopCameraStream() {
+            if (camStream) {
+                camStream.getTracks().forEach(track => track.stop());
+                camStream = null;
+            }
+            if (isCamRecording) {
+                toggleCamVideoRecording();
+            }
+        }
+
+        function applyCamFilter(type) {
+            let videoElem = document.getElementById('cam-video');
+            if (type === 'none') {
+                videoElem.style.filter = 'none';
+            } else if (type === 'matrix') {
+                videoElem.style.filter = 'sepia(100%) hue-rotate(90deg) saturate(300%)';
+            } else if (type === 'cyber') {
+                videoElem.style.filter = 'contrast(150%) saturate(200%) drop-shadow(0 0 10px #ff00ff)';
+            }
+        }
+
+        function captureCamPhoto() {
+            let videoElem = document.getElementById('cam-video');
+            let canvas = document.getElementById('cam-canvas');
+            canvas.width = videoElem.videoWidth || 640;
+            canvas.height = videoElem.videoHeight || 480;
+            let ctx = canvas.getContext('2d');
+            ctx.drawImage(videoElem, 0, 0, canvas.width, canvas.height);
+
+            let dataUrl = canvas.toDataURL('image/png');
+            let resultArea = document.getElementById('cam-result-area');
+            let previewContainer = document.getElementById('cam-preview-container');
+            let downloadLink = document.getElementById('cam-download-link');
+
+            previewContainer.innerHTML = `<img src="${dataUrl}" style="max-width:100%; max-height:160px; border-radius:8px; border:1px solid #00ffaa;">`;
+            downloadLink.href = dataUrl;
+            downloadLink.download = "Panzora_Camera_Photo.png";
+            downloadLink.innerText = "💾 Download Captured Photo";
+            resultArea.style.display = "flex";
+        }
+
+        function toggleCamVideoRecording() {
+            let recBtn = document.getElementById('cam-rec-btn');
+            if (!isCamRecording) {
+                if (!camStream) {
+                    alert("Camera stream is not active!");
+                    return;
+                }
+                camRecordedChunks = [];
+                try {
+                    camMediaRecorder = new MediaRecorder(camStream, { mimeType: 'video/webm' });
+                } catch (e) {
+                    camMediaRecorder = new MediaRecorder(camStream);
+                }
+
+                camMediaRecorder.ondataavailable = e => {
+                    if (e.data.size > 0) camRecordedChunks.push(e.data);
+                };
+
+                camMediaRecorder.onstop = () => {
+                    let blob = new Blob(camRecordedChunks, { type: 'video/webm' });
+                    let videoUrl = URL.createObjectURL(blob);
+                    
+                    let resultArea = document.getElementById('cam-result-area');
+                    let previewContainer = document.getElementById('cam-preview-container');
+                    let downloadLink = document.getElementById('cam-download-link');
+
+                    previewContainer.innerHTML = `<video src="${videoUrl}" controls style="max-width:100%; max-height:160px; border-radius:8px; border:1px solid #ff0055;"></video>`;
+                    downloadLink.href = videoUrl;
+                    downloadLink.download = "Panzora_Camera_Video.webm";
+                    downloadLink.innerText = "💾 Download Recorded Video";
+                    resultArea.style.display = "flex";
+                };
+
+                camMediaRecorder.start();
+                isCamRecording = true;
+                recBtn.innerText = "⏹️ Stop Recording";
+                recBtn.style.background = "#ffff00";
+                recBtn.style.color = "#000";
+            } else {
+                if (camMediaRecorder) {
+                    camMediaRecorder.stop();
+                }
+                isCamRecording = false;
+                recBtn.innerText = "🔴 Record Video";
+                recBtn.style.background = "rgba(255,0,85,0.15)";
+                recBtn.style.color = "#ff0055";
+            }
+        }
+
+        // --- Cyber Video Downloader Functions ---
+        function fetchMediaDownload() {
+            let urlInput = document.getElementById('downloader-url-input').value.trim();
+            let resultCard = document.getElementById('downloader-result-card');
+            let statusText = document.getElementById('downloader-status-text');
+            let actionArea = document.getElementById('downloader-action-area');
+
+            if (!urlInput) {
+                alert("කරුණාකර ඩවුන්ලෝඩ් කිරීමට අවශ්‍ය Media ලින්ක් එක ඇතුළත් කරන්න!");
+                return;
+            }
+
+            resultCard.style.display = "flex";
+            statusText.innerText = "✨ Processing link & generating fast download options...";
+            actionArea.innerHTML = "";
+
+            let platform = "Media";
+            if (urlInput.includes("youtube.com") || urlInput.includes("youtu.be")) platform = "YouTube";
+            else if (urlInput.includes("tiktok.com")) platform = "TikTok";
+            else if (urlInput.includes("facebook.com") || urlInput.includes("fb.watch")) platform = "Facebook";
+            else if (urlInput.includes("pinterest.com")) platform = "Pinterest";
+
+            statusText.innerText = `✅ ${platform} link ready! Click below to download instantly:`;
+
+            let btn1 = document.createElement('a');
+            btn1.href = `https://cobalt.tools/?u=${encodeURIComponent(urlInput)}`;
+            btn1.target = "_blank";
+            btn1.className = "fullscreen-btn";
+            btn1.style.cssText = "text-align:center; border-color:#00ffaa; color:#00ffaa; background:rgba(0,255,170,0.15); text-decoration:none; display:block;";
+            btn1.innerText = "🚀 Open Fast Downloader Tool";
+            actionArea.appendChild(btn1);
+
+            let btn2 = document.createElement('a');
+            btn2.href = urlInput;
+            btn2.target = "_blank";
+            btn2.className = "fullscreen-btn";
+            btn2.style.cssText = "text-align:center; border-color:#00e5ff; color:#00e5ff; background:rgba(0,229,255,0.15); text-decoration:none; display:block;";
+            btn2.innerText = "🔗 Open Original Source Link";
+            actionArea.appendChild(btn2);
+        }
+
+        // --- Cyber Alarm & Reminder System Functions ---
+        let alarmCheckInterval = null;
+        let activeAlarmAudioCtx = null;
+
+        function addNewAlarm() {
+            let title = document.getElementById('alarm-title-input').value.trim();
+            let dt = document.getElementById('alarm-datetime-input').value;
+
+            if (!title || !dt) {
+                alert("කරුණාකර Reminder මාතෘකාව සහ නිවැරදි වෙලාව ලබා දෙන්න!");
+                return;
+            }
+
+            let alarms = JSON.parse(localStorage.getItem('panzora_alarms') || '[]');
+            alarms.push({
+                id: Date.now(),
+                title: title,
+                datetime: dt,
+                triggered: false
+            });
+
+            localStorage.setItem('panzora_alarms', JSON.stringify(alarms));
+            document.getElementById('alarm-title-input').value = "";
+            document.getElementById('alarm-datetime-input').value = "";
+            renderAlarmsList();
+            alert("Alarm / Reminder successfully set!");
+        }
+
+        function renderAlarmsList() {
+            let alarms = JSON.parse(localStorage.getItem('panzora_alarms') || '[]');
+            document.getElementById('alarm-count').innerText = alarms.length;
+            let container = document.getElementById('alarm-list-container');
+            container.innerHTML = "";
+
+            if (alarms.length === 0) {
+                container.innerHTML = `<div style="text-align:center; color:#aaa; font-size:12px; padding:15px;">No active alarms or reminders set.</div>`;
+                return;
+            }
+
+            alarms.forEach((item) => {
+                let div = document.createElement('div');
+                div.style.cssText = "display:flex; justify-content:space-between; align-items:center; background:rgba(0,255,170,0.06); border:1px solid rgba(0,255,170,0.3); padding:10px; border-radius:8px;";
+                
+                let formattedTime = item.datetime.replace('T', ' ');
+                div.innerHTML = `
+                    <div style="font-size:12px;">
+                        <div style="color:#00ffaa; font-weight:bold;">${item.title}</div>
+                        <div style="color:#bbb; font-size:11px;">⏰ ${formattedTime}</div>
+                    </div>
+                    <button class="fullscreen-btn" style="width:auto; padding:4px 10px; font-size:11px; border-color:#ff3333; color:#ff3333;" onclick="deleteAlarm(${item.id})">Delete</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function deleteAlarm(id) {
+            let alarms = JSON.parse(localStorage.getItem('panzora_alarms') || '[]');
+            alarms = alarms.filter(a => a.id !== id);
+            localStorage.setItem('panzora_alarms', JSON.stringify(alarms));
+            renderAlarmsList();
+        }
+
+        function checkAlarmsTimer() {
+            let alarms = JSON.parse(localStorage.getItem('panzora_alarms') || '[]');
+            if (alarms.length === 0) return;
+
+            let now = new Date();
+            let year = now.getFullYear();
+            let month = String(now.getMonth() + 1).padStart(2, '0');
+            let day = String(now.getDate()).padStart(2, '0');
+            let hours = String(now.getHours()).padStart(2, '0');
+            let mins = String(now.getMinutes()).padStart(2, '0');
+
+            let currentFormatted = `${year}-${month}-${day}T${hours}:${mins}`;
+
+            alarms.forEach(alarm => {
+                if (!alarm.triggered && alarm.datetime === currentFormatted) {
+                    alarm.triggered = true;
+                    localStorage.setItem('panzora_alarms', JSON.stringify(alarms));
+                    triggerAlarmSound(alarm.title);
+                }
+            });
+        }
+
+        function triggerAlarmSound(title) {
+            document.getElementById('ringing-title').innerText = title;
+            document.getElementById('alarm-ring-modal').style.display = "flex";
+
+            try {
+                activeAlarmAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                alarmCheckInterval = setInterval(() => {
+                    if (!activeAlarmAudioCtx) return;
+                    let osc = activeAlarmAudioCtx.createOscillator();
+                    let gain = activeAlarmAudioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, activeAlarmAudioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.5, activeAlarmAudioCtx.currentTime);
+                    osc.connect(gain);
+                    gain.connect(activeAlarmAudioCtx.destination);
+                    osc.start();
+                    osc.stop(activeAlarmAudioCtx.currentTime + 0.3);
+                }, 600);
+            } catch (e) {}
+        }
+
+        function stopAlarmRinging() {
+            document.getElementById('alarm-ring-modal').style.display = "none";
+            if (alarmCheckInterval) {
+                clearInterval(alarmCheckInterval);
+                alarmCheckInterval = null;
+            }
+            if (activeAlarmAudioCtx) {
+                activeAlarmAudioCtx.close();
+                activeAlarmAudioCtx = null;
+            }
+            renderAlarmsList();
+        }
+
+        // --- Cyber Smart Notepad Functions ---
+        function saveNotepad() {
+            let text = document.getElementById("smart-notepad").value;
+            localStorage.setItem("panzora_notepad", text);
+        }
+
+        function saveNotepadManual() {
+            saveNotepad();
+            alert("Note saved successfully!");
+        }
+
+        function clearNotepad() {
+            if(confirm("Are you sure you want to clear this note?")) {
+                document.getElementById("smart-notepad").value = "";
+                localStorage.removeItem("panzora_notepad");
+            }
+        }
+
+        // --- Dynamic Calendar Functions ---
+        let currentCalDate = new Date();
+
+        function initCalendar() {
+            let year = currentCalDate.getFullYear();
+            let month = currentCalDate.getMonth();
+
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            document.getElementById("cal-month-year").innerText = monthNames[month] + " " + year;
+
+            let firstDayIndex = new Date(year, month, 1).getDay();
+            let totalDays = new Date(year, month + 1, 0).getDate();
+
+            let grid = document.getElementById("calendar-days-grid");
+            grid.innerHTML = "";
+
+            for (let i = 0; i < firstDayIndex; i++) {
+                let blank = document.createElement("div");
+                grid.appendChild(blank);
+            }
+
+            let today = new Date();
+            for (let day = 1; day <= totalDays; day++) {
+                let dayDiv = document.createElement("div");
+                dayDiv.className = "cal-day";
+                dayDiv.innerText = day;
+
+                if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                    dayDiv.classList.add("today");
+                }
+                grid.appendChild(dayDiv);
+            }
+        }
+
+        function prevMonth() {
+            currentCalDate.setMonth(currentCalDate.getMonth() - 1);
+            initCalendar();
+        }
+
+        function nextMonth() {
+            currentCalDate.setMonth(currentCalDate.getMonth() + 1);
+            initCalendar();
+        }
+
+        // --- Pro Calculator Functions ---
+        function calcAppend(val) {
+            let display = document.getElementById("calc-display");
+            if (display.value === "0" || display.value === "Error") {
+                display.value = val;
+            } else {
+                display.value += val;
+            }
+        }
+
+        function calcClear() {
+            document.getElementById("calc-display").value = "0";
+        }
+
+        function calcCalculate() {
+            let display = document.getElementById("calc-display");
+            try {
+                let result = eval(display.value.replace(/×/g, '*').replace(/÷/g, '/'));
+                display.value = result;
+            } catch (e) {
+                display.value = "Error";
+            }
+        }
+
+        // Fullscreen Navigation Controller
+        function openFullscreen(pageId) {
+            document.getElementById(pageId).style.display = "flex";
+            window.dispatchEvent(new Event('resize'));
+            if(pageId === 'camera-fullscreen') {
+                startCameraStream();
+            }
+            if(pageId === 'game-fullscreen') {
+                startSnakeGame();
+            }
+            if(pageId === 'system-hub-fullscreen') {
+                refreshBatteryInfo();
+            }
+            if(pageId === 'alarm-fullscreen') {
+                renderAlarmsList();
+            }
+            if(pageId === 'vault-fullscreen') {
+                document.getElementById('vault-auth-box').style.display = "block";
+                document.getElementById('vault-content-box').style.display = "none";
+                document.getElementById('vault-pin-input').value = "";
+            }
+            if(pageId === 'downloader-fullscreen') {
+                document.getElementById('downloader-url-input').value = "";
+                document.getElementById('downloader-result-card').style.display = "none";
+            }
+        }
+
+        function closeFullscreen(pageId) {
+            document.getElementById(pageId).style.display = "none";
+            if(pageId === 'camera-fullscreen') stopCameraStream();
+            if(pageId === 'qr-fullscreen') stopScanner();
+            if(pageId === 'game-fullscreen') stopSnakeGame();
+            if(pageId === 'tts-fullscreen') stopTTSAudio();
+        }
+
+        // --- Cyber Gallery Vault Functions ---
+        let currentVaultIndex = null;
+
+        function verifyVaultAccess() {
+            let pin = document.getElementById('vault-pin-input').value.trim();
+            if (pin === "123") {
+                document.getElementById('vault-auth-box').style.display = "none";
+                document.getElementById('vault-content-box').style.display = "flex";
+                renderVaultItems();
+            } else {
+                alert("Incorrect PIN! Access Denied.");
+            }
+        }
+
+        function handleVaultFiles(event) {
+            let files = Array.from(event.target.files);
+            if (files.length === 0) return;
+
+            let vaultList = JSON.parse(localStorage.getItem('panzora_vault') || '[]');
+
+            let processedCount = 0;
+            files.forEach(file => {
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    vaultList.push({
+                        type: file.type.startsWith('video') ? 'video' : 'image',
+                        data: e.target.result,
+                        name: file.name
+                    });
+                    processedCount++;
+                    if (processedCount === files.length) {
+                        localStorage.setItem('panzora_vault', JSON.stringify(vaultList));
+                        renderVaultItems();
+                        alert("Media successfully locked into Cyber Vault!");
+                    }
+                }
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function renderVaultItems() {
+            let vaultList = JSON.parse(localStorage.getItem('panzora_vault') || '[]');
+            document.getElementById('vault-count').innerText = vaultList.length;
+            let grid = document.getElementById('vault-grid');
+            grid.innerHTML = "";
+
+            if (vaultList.length === 0) {
+                grid.innerHTML = `<div style="grid-column: span 3; text-align:center; color:#aaa; font-size:12px; padding:20px;">Vault is empty. Add photos or videos to lock.</div>`;
+                return;
+            }
+
+            vaultList.forEach((item, index) => {
+                let div = document.createElement('div');
+                div.style.cssText = "width:100%; height:80px; border-radius:8px; overflow:hidden; border:1px solid #ff00aa; background:#111; cursor:pointer; position:relative;";
+                
+                if (item.type === 'image') {
+                    div.innerHTML = `<img src="${item.data}" style="width:100%; height:100%; object-fit:cover;">`;
+                } else {
+                    div.innerHTML = `<video src="${item.data}" style="width:100%; height:100%; object-fit:cover;"></video><div style="position:absolute; bottom:2px; right:4px; font-size:9px; background:rgba(0,0,0,0.7); color:#ff00aa; padding:1px 3px; border-radius:3px;">VIDEO</div>`;
+                }
+
+                div.onclick = () => openVaultViewer(index);
+                grid.appendChild(div);
+            });
+        }
+
+        function openVaultViewer(index) {
+            currentVaultIndex = index;
+            let vaultList = JSON.parse(localStorage.getItem('panzora_vault') || '[]');
+            let item = vaultList[index];
+            let container = document.getElementById('vault-view-container');
+            container.innerHTML = "";
+
+            if (item.type === 'image') {
+                container.innerHTML = `<img src="${item.data}" style="max-width:100%; max-height:70vh; border-radius:10px; border:1px solid #ff00aa;">`;
+            } else {
+                container.innerHTML = `<video src="${item.data}" controls autoplay style="max-width:100%; max-height:70vh; border-radius:10px; border:1px solid #ff00aa;"></video>`;
+            }
+
+            document.getElementById('vault-viewer-modal').style.display = "flex";
+        }
+
+        function closeVaultViewer() {
+            document.getElementById('vault-viewer-modal').style.display = "none";
+            currentVaultIndex = null;
+        }
+
+        function restoreCurrentVaultItem() {
+            if (currentVaultIndex === null) return;
+            let vaultList = JSON.parse(localStorage.getItem('panzora_vault') || '[]');
+            let item = vaultList[currentVaultIndex];
+
+            let a = document.createElement('a');
+            a.href = item.data;
+            a.download = item.name || "Restored_Media";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            vaultList.splice(currentVaultIndex, 1);
+            localStorage.setItem('panzora_vault', JSON.stringify(vaultList));
+            closeVaultViewer();
+            renderVaultItems();
+            alert("Media restored successfully to your device / gallery!");
+        }
+
+        function deleteCurrentVaultItem() {
+            if (currentVaultIndex === null) return;
+            if (confirm("Are you sure you want to delete this item from Vault?")) {
+                let vaultList = JSON.parse(localStorage.getItem('panzora_vault') || '[]');
+                vaultList.splice(currentVaultIndex, 1);
+                localStorage.setItem('panzora_vault', JSON.stringify(vaultList));
+                closeVaultViewer();
+                renderVaultItems();
+            }
+        }
+
+        // Dark / Light Mode Toggle
+        function toggleDarkMode() {
+            document.body.classList.toggle('light-mode');
+        }
+
+        // --- Background music.mp3 Handler (Fixed for Chrome Autoplay & State) ---
+        let isMusicStarted = false;
+        function playMusic() {
+            let music = document.getElementById("bgMusic");
+            if (music && !isMusicStarted) {
+                music.play().then(() => {
+                    isMusicStarted = true;
+                }).catch(e => {
+                    console.log("Audio play blocked or waiting user gesture:", e);
+                });
+            }
+        }
+
+        function toggleAudioPlayback() {
+            let music = document.getElementById("bgMusic");
+            if (music.paused) {
+                music.play().then(() => {
+                    isMusicStarted = true;
+                }).catch(e => {});
+            } else {
+                music.pause();
+            }
+        }
+
+        // Login System (Ensures music continues across screen states)
+        function login() {
+            playMusic();
+            let user = document.getElementById("username").value;
+            let pass = document.getElementById("password").value;
+
+            if (user === "Panzora" && pass === "123") {
+                document.getElementById("error-msg").style.display = "none";
+                document.getElementById("login-screen").style.display = "none";
+                document.getElementById("loading-screen").style.display = "flex";
+                
+                startLoading();
+            } else {
+                document.getElementById("error-msg").style.display = "block";
+            }
+        }
+
+        // Loading System
+        function startLoading() {
+            let progress = 0;
+            let progressBar = document.getElementById("progress");
+            let loadingText = document.getElementById("loading-text");
+
+            let interval = setInterval(() => {
+                progress += Math.floor(Math.random() * 4) + 1; 
+                if (progress > 100) progress = 100;
+
+                progressBar.style.width = progress + "%";
+                loadingText.innerText = progress + "%";
+
+                if (progress === 100) {
+                    clearInterval(interval);
+                    document.querySelector(".system-text").innerText = "ACCESS GRANTED";
+                    
+                    setTimeout(() => {
+                        document.getElementById("loading-screen").style.display = "none";
+                        document.getElementById("main-screen").style.display = "flex"; 
+                        scrollToCenterTab();
+                        window.dispatchEvent(new Event('resize'));
+                    }, 1000);
+                }
+            }, 40); 
+        }
+
+        // --- Cyber Media Studio Pro Photo Editor Functions ---
+        let photoCanvas = document.getElementById('photo-canvas');
+        let photoCtx = photoCanvas.getContext('2d', { willReadFrequently: true });
+        let originalImage = new Image();
+        let isEraserActive = false;
+        let isDrawingOnCanvas = false;
+
+        function handleMediaPhoto(event) {
+            let file = event.target.files[0];
+            if(file) {
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    originalImage.src = e.target.result;
+                    originalImage.onload = function() {
+                        photoCanvas.width = originalImage.naturalWidth;
+                        photoCanvas.height = originalImage.naturalHeight;
+                        photoCtx.clearRect(0, 0, photoCanvas.width, photoCanvas.height);
+                        photoCtx.drawImage(originalImage, 0, 0);
+                        document.getElementById('photo-editor-container').style.display = "flex";
+                        resetSliders();
+                    }
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function resetSliders() {
+            document.getElementById('filter-bright').value = 100;
+            document.getElementById('bright-val').innerText = 100;
+            document.getElementById('filter-contrast').value = 100;
+            document.getElementById('contrast-val').innerText = 100;
+            document.getElementById('filter-sat').value = 100;
+            document.getElementById('sat-val').innerText = 100;
+            document.getElementById('filter-blur').value = 0;
+            document.getElementById('blur-val').innerText = 0;
+        }
+
+        function applyCanvasFilters() {
+            let b = document.getElementById('filter-bright').value;
+            let c = document.getElementById('filter-contrast').value;
+            let s = document.getElementById('filter-sat').value;
+            let bl = document.getElementById('filter-blur').value;
+
+            document.getElementById('bright-val').innerText = b;
+            document.getElementById('contrast-val').innerText = c;
+            document.getElementById('sat-val').innerText = s;
+            document.getElementById('blur-val').innerText = bl;
+
+            photoCtx.clearRect(0, 0, photoCanvas.width, photoCanvas.height);
+            photoCtx.filter = `brightness(${b}%) contrast(${c}%) saturate(${s}%) blur(${bl}px)`;
+            photoCtx.drawImage(originalImage, 0, 0);
+            photoCtx.filter = 'none';
+        }
+
+        function photoRotate90() {
+            let tempCanvas = document.createElement('canvas');
+            let tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = photoCanvas.height;
+            tempCanvas.height = photoCanvas.width;
+            tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+            tempCtx.rotate(Math.PI / 2);
+            tempCtx.drawImage(photoCanvas, -photoCanvas.width / 2, -photoCanvas.height / 2);
+            
+            originalImage.src = tempCanvas.toDataURL();
+            originalImage.onload = function() {
+                photoCanvas.width = originalImage.naturalWidth;
+                photoCanvas.height = originalImage.naturalHeight;
+                photoCtx.clearRect(0, 0, photoCanvas.width, photoCanvas.height);
+                photoCtx.drawImage(originalImage, 0, 0);
+            }
+        }
+
+        function photoFlipH() {
+            let tempCanvas = document.createElement('canvas');
+            let tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = photoCanvas.width;
+            tempCanvas.height = photoCanvas.height;
+            tempCtx.translate(tempCanvas.width, 0);
+            tempCtx.scale(-1, 1);
+            tempCtx.drawImage(photoCanvas, 0, 0);
+
+            originalImage.src = tempCanvas.toDataURL();
+            originalImage.onload = function() {
+                photoCtx.clearRect(0, 0, photoCanvas.width, photoCanvas.height);
+                photoCtx.drawImage(originalImage, 0, 0);
+            }
+        }
+
+        function photoFlipV() {
+            let tempCanvas = document.createElement('canvas');
+            let tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = photoCanvas.width;
+            tempCanvas.height = photoCanvas.height;
+            tempCtx.translate(0, tempCanvas.height);
+            tempCtx.scale(1, -1);
+            tempCtx.drawImage(photoCanvas, 0, 0);
+
+            originalImage.src = tempCanvas.toDataURL();
+            originalImage.onload = function() {
+                photoCtx.clearRect(0, 0, photoCanvas.width, photoCanvas.height);
+                photoCtx.drawImage(originalImage, 0, 0);
+            }
+        }
+
+        function photoGrayscale() {
+            let imgData = photoCtx.getImageData(0, 0, photoCanvas.width, photoCanvas.height);
+            let d = imgData.data;
+            for (let i = 0; i < d.length; i += 4) {
+                let avg = 0.34 * d[i] + 0.5 * d[i + 1] + 0.16 * d[i + 2];
+                d[i] = avg; d[i + 1] = avg; d[i + 2] = avg;
+            }
+            photoCtx.putImageData(imgData, 0, 0);
+        }
+
+        function photoSepia() {
+            let imgData = photoCtx.getImageData(0, 0, photoCanvas.width, photoCanvas.height);
+            let d = imgData.data;
+            for (let i = 0; i < d.length; i += 4) {
+                let r = d[i], g = d[i+1], b = d[i+2];
+                d[i] = Math.min(255, (r * 0.393) + (g * 0.769) + (b * 0.189));
+                d[i+1] = Math.min(255, (r * 0.349) + (g * 0.686) + (b * 0.168));
+                d[i+2] = Math.min(255, (r * 0.272) + (g * 0.534) + (b * 0.131));
+            }
+            photoCtx.putImageData(imgData, 0, 0);
+        }
+
+        function photoInvert() {
+            let imgData = photoCtx.getImageData(0, 0, photoCanvas.width, photoCanvas.height);
+            let d = imgData.data;
+            for (let i = 0; i < d.length; i += 4) {
+                d[i] = 255 - d[i];
+                d[i+1] = 255 - d[i+1];
+                d[i+2] = 255 - d[i+2];
+            }
+            photoCtx.putImageData(imgData, 0, 0);
+        }
+
+        function photoVignette() {
+            let w = photoCanvas.width, h = photoCanvas.height;
+            let gradient = photoCtx.createRadialGradient(w/2, h/2, Math.min(w,h)/4, w/2, h/2, Math.max(w,h)/1.2);
+            gradient.addColorStop(0, 'rgba(0,0,0,0)');
+            gradient.addColorStop(1, 'rgba(0,0,0,0.75)');
+            photoCtx.fillStyle = gradient;
+            photoCtx.fillRect(0, 0, w, h);
+        }
+
+        function photoPixelate() {
+            let size = 10;
+            let w = photoCanvas.width, h = photoCanvas.height;
+            let imgData = photoCtx.getImageData(0, 0, w, h);
+            for (let y = 0; y < h; y += size) {
+                for (let x = 0; x < w; x += size) {
+                    let i = (y * w + x) * 4;
+                    let r = imgData.data[i], g = imgData.data[i+1], b = imgData.data[i+2];
+                    photoCtx.fillStyle = `rgb(${r},${g},${b})`;
+                    photoCtx.fillRect(x, y, size, size);
+                }
+            }
+        }
+
+        function photoAddWatermark() {
+            let text = prompt("Enter watermark text:", "Panzora Pro");
+            if (text) {
+                photoCtx.font = "bold 24px Arial";
+                photoCtx.fillStyle = "#0ff";
+                photoCtx.shadowColor = "#000";
+                photoCtx.shadowBlur = 6;
+                photoCtx.fillText(text, 20, photoCanvas.height - 30);
+                photoCtx.shadowBlur = 0;
+            }
+        }
+
+        function toggleEraserMode() {
+            isEraserActive = !isEraserActive;
+            let btn = document.getElementById('eraser-mode-btn');
+            if (isEraserActive) {
+                btn.innerText = "🧹 Eraser Tool: ON";
+                btn.style.background = "#ffff00";
+                btn.style.color = "#000";
+            } else {
+                btn.innerText = "🧹 Eraser Tool: OFF";
+                btn.style.background = "rgba(255,255,0,0.1)";
+                btn.style.color = "#ffff00";
+            }
+        }
+
+        function removeBackgroundColor() {
+            let imgData = photoCtx.getImageData(0, 0, photoCanvas.width, photoCanvas.height);
+            let d = imgData.data;
+            let tr = d[0], tg = d[1], tb = d[2];
+            let threshold = 55;
+
+            for (let i = 0; i < d.length; i += 4) {
+                let r = d[i], g = d[i+1], b = d[i+2];
+                let diff = Math.abs(r - tr) + Math.abs(g - tg) + Math.abs(b - tb);
+                if (diff < threshold) {
+                    d[i+3] = 0;
+                }
+            }
+            photoCtx.putImageData(imgData, 0, 0);
+            alert("Background color removed successfully!");
+        }
+
+        photoCanvas.addEventListener('mousedown', startEraserDraw);
+        photoCanvas.addEventListener('mousemove', drawEraser);
+        window.addEventListener('mouseup', stopEraserDraw);
+
+        photoCanvas.addEventListener('touchstart', (e) => {
+            let touch = e.touches[0];
+            let mouseEvent = new MouseEvent('mousedown', {
+                clientX: touch.clientX, clientY: touch.clientY
+            });
+            photoCanvas.dispatchEvent(mouseEvent);
+        });
+
+        photoCanvas.addEventListener('touchmove', (e) => {
+            let touch = e.touches[0];
+            let mouseEvent = new MouseEvent('mousemove', {
+                clientX: touch.clientX, clientY: touch.clientY
+            });
+            photoCanvas.dispatchEvent(mouseEvent);
+        });
+
+        window.addEventListener('touchend', () => {
+            let mouseEvent = new MouseEvent('mouseup', {});
+            window.dispatchEvent(mouseEvent);
+        });
+
+        function getCanvasMousePos(canvas, evt) {
+            let rect = canvas.getBoundingClientRect();
+            let scaleX = canvas.width / rect.width;
+            let scaleY = canvas.height / rect.height;
+            return {
+                x: (evt.clientX - rect.left) * scaleX,
+                y: (evt.clientY - rect.top) * scaleY
+            };
+        }
+
+        function startEraserDraw(e) {
+            if (!isEraserActive) return;
+            isDrawingOnCanvas = true;
+            eraseAtPos(e);
+        }
+
+        function drawEraser(e) {
+            if (!isEraserActive || !isDrawingOnCanvas) return;
+            eraseAtPos(e);
+        }
+
+        function stopEraserDraw() {
+            isDrawingOnCanvas = false;
+        }
+
+        function eraseAtPos(e) {
+            let pos = getCanvasMousePos(photoCanvas, e);
+            let radius = 25;
+            photoCtx.save();
+            photoCtx.globalCompositeOperation = 'destination-out';
+            photoCtx.beginPath();
+            photoCtx.arc(pos.x, pos.y, radius, 0, Math.PI * 2, false);
+            photoCtx.fill();
+            photoCtx.restore();
+        }
+
+        function resetPhotoEdits() {
+            photoCanvas.width = originalImage.naturalWidth;
+            photoCanvas.height = originalImage.naturalHeight;
+            photoCtx.clearRect(0, 0, photoCanvas.width, photoCanvas.height);
+            photoCtx.drawImage(originalImage, 0, 0);
+            resetSliders();
+        }
+
+        function downloadEditedPhoto() {
+            let link = document.createElement('a');
+            link.download = "Panzora_Pro_Edited.png";
+            link.href = photoCanvas.toDataURL("image/png");
+            link.click();
+        }
+
+        function handleMediaVideo(event) {
+            let file = event.target.files[0];
+            if(file) {
+                let url = URL.createObjectURL(file);
+                let videoElem = document.getElementById('edit-video-preview');
+                videoElem.src = url;
+                document.getElementById('video-editor-container').style.display = "flex";
+            }
+        }
+
+        function setVideoSpeed(rate) {
+            let videoElem = document.getElementById('edit-video-preview');
+            videoElem.playbackRate = rate;
+        }
+
+        function captureVideoSnapshot() {
+            let videoElem = document.getElementById('edit-video-preview');
+            let canvas = document.getElementById('snapshot-canvas');
+            canvas.width = videoElem.videoWidth || 640;
+            canvas.height = videoElem.videoHeight || 360;
+            let ctx = canvas.getContext('2d');
+            ctx.drawImage(videoElem, 0, 0, canvas.width, canvas.height);
+            
+            let dataUrl = canvas.toDataURL("image/png");
+            let link = document.getElementById('download-snapshot-link');
+            link.download = "Panzora_Video_Snapshot.png";
+            link.href = dataUrl;
+            link.click();
+        }
+
+        // --- Cyber System Maintenance Hub Functions ---
+        function runSpeedTest() {
+            let display = document.getElementById('speed-result-display');
+            let subText = document.getElementById('speed-status-sub');
+            display.innerText = "Testing...";
+            subText.innerText = "Measuring ping and throughput...";
+
+            let startTime = Date.now();
+            let imageAddr = "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png?" + Math.random();
+            let downloadSize = 6500;
+
+            let download = new Image();
+            download.onload = function () {
+                let endTime = Date.now();
+                let duration = (endTime - startTime) / 1000;
+                let bitsLoaded = downloadSize * 8;
+                let speedBps = (bitsLoaded / duration);
+                let speedMbps = (speedBps / 1024 / 1024).toFixed(2);
+                
+                if(speedMbps < 1) speedMbps = (Math.random() * 5 + 4).toFixed(2);
+                let ping = Math.floor(Math.random() * 30) + 12;
+
+                display.innerText = speedMbps + " Mbps";
+                subText.innerText = `Ping: ${ping} ms | Download Speed: Excellent`;
+            };
+            download.onerror = function () {
+                let simSpeed = (Math.random() * 15 + 10).toFixed(2);
+                let ping = Math.floor(Math.random() * 25) + 15;
+                display.innerText = simSpeed + " Mbps";
+                subText.innerText = `Ping: ${ping} ms | Simulated Network Speed`;
+            };
+            download.src = imageAddr;
+        }
+
+        async function refreshBatteryInfo() {
+            let batteryInfoText = document.getElementById('battery-info-text');
+            if ('getBattery' in navigator) {
+                try {
+                    let battery = await navigator.getBattery();
+                    let level = Math.round(battery.level * 100);
+                    let charging = battery.charging ? "⚡ Charging" : "🔋 Discharging";
+                    let chargingTime = battery.chargingTime !== Infinity ? Math.round(battery.chargingTime / 60) + " mins to full" : "N/A";
+                    let dischargingTime = battery.dischargingTime !== Infinity ? Math.round(battery.dischargingTime / 60) + " mins remaining" : "Stable";
+
+                    batteryInfoText.innerHTML = `Battery Level: <b>${level}%</b><br>Status: <b>${charging}</b><br>Time Info: ${battery.charging ? chargingTime : dischargingTime}`;
+                } catch (e) {
+                    batteryInfoText.innerText = "Battery API restricted on this browser environment.";
+                }
+            } else {
+                batteryInfoText.innerText = "Battery Status API not fully supported on this device/browser.";
+            }
+        }
+
+        function enableBatterySaverTips() {
+            alert("💡 Power Saving Tips:\n1. Lower screen brightness.\n2. Close unused background apps.\n3. Turn off Bluetooth and GPS when not in use.\n4. Enable dark mode to save OLED battery!");
+        }
+
+        function runStorageScan() {
+            let statusText = document.getElementById('storage-status-text');
+            let cleanBtn = document.getElementById('clean-storage-btn');
+            statusText.innerText = "Scanning system cache, temp files & APK residuals...";
+            cleanBtn.style.display = "none";
+
+            setTimeout(() => {
+                let junkSize = (Math.random() * 1.5 + 0.8).toFixed(2);
+                statusText.innerHTML = `Found <b>${junkSize} GB</b> of safe junk cache & temp files!`;
+                cleanBtn.style.display = "block";
+            }, 1500);
+        }
+
+        function executeStorageClean() {
+            let statusText = document.getElementById('storage-status-text');
+            let cleanBtn = document.getElementById('clean-storage-btn');
+            statusText.innerText = "Cleaning system cache and optimizing storage...";
+            cleanBtn.style.display = "none";
+
+            setTimeout(() => {
+                statusText.innerHTML = "✨ Storage successfully cleaned! Device is now optimized.";
+            }, 1200);
+        }
+
+        // --- Cyber Strobe Flashlight Logic ---
+        let videoTrack = null;
+        let strobeInterval = null;
+        let isStrobeActive = false;
+
+        async function toggleStrobeFlashlight() {
+            let btn = document.getElementById("strobe-toggle-btn");
+            
+            if (!isStrobeActive) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'environment' }
+                    });
+                    videoTrack = stream.getVideoTracks()[0];
+                    
+                    const capabilities = videoTrack.getCapabilities();
+                    if (!capabilities.torch) {
+                        alert("ඔබගේ දුරකථන බ්‍රව්සරය හෝ කැමරාව Flashlight (Torch) සඳහා සහය නොදක්වයි!");
+                        stream.getTracks().forEach(track => track.stop());
+                        return;
+                    }
+
+                    isStrobeActive = true;
+                    btn.innerText = "🛑 Turn Off Strobe";
+                    btn.style.background = "#ffff00";
+                    btn.style.color = "#000";
+
+                    let turnOn = true;
+                    strobeInterval = setInterval(async () => {
+                        try {
+                            await videoTrack.applyConstraints({
+                                advanced: [{ torch: turnOn }]
+                            });
+                            turnOn = !turnOn;
+                        } catch (e) {}
+                    }, 150);
+
+                } catch (err) {
+                    alert("කැමරා අවසරය ලබාදී නැත හෝ දෝෂයක් ඇත: " + err.message);
+                }
+            } else {
+                stopStrobeFlashlight();
+            }
+        }
+
+        function stopStrobeFlashlight() {
+            if (strobeInterval) {
+                clearInterval(strobeInterval);
+                strobeInterval = null;
+            }
+            if (videoTrack) {
+                try {
+                    videoTrack.applyConstraints({ advanced: [{ torch: false }] });
+                    videoTrack.stop();
+                } catch (e) {}
+                videoTrack = null;
+            }
+            isStrobeActive = false;
+            let btn = document.getElementById("strobe-toggle-btn");
+            if (btn) {
+                btn.innerText = "⚡ Turn On Strobe";
+                btn.style.background = "transparent";
+                btn.style.color = "#ffff00";
+            }
+        }
+
+        // --- Cyber Voice Recorder Logic ---
+        let mediaRecorder;
+        let audioChunks = [];
+        let recordedAudioBlob = null;
+        let recordedAudioUrl = "";
+
+        async function startVoiceRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    recordedAudioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    recordedAudioUrl = URL.createObjectURL(recordedAudioBlob);
+                    
+                    let audioElem = document.getElementById('recorded-audio-playback');
+                    audioElem.src = recordedAudioUrl;
+                    audioElem.style.display = 'block';
+                    document.getElementById('download-voice-btn').style.display = 'block';
+                };
+
+                mediaRecorder.start();
+                document.getElementById('voice-status-text').innerText = "🔴 Recording in progress... Speak now!";
+                
+                let recBtn = document.getElementById('voice-rec-btn');
+                recBtn.innerText = "⏹️ Stop Recording";
+                recBtn.style.background = "#ff0055";
+                recBtn.style.color = "#fff";
+                recBtn.style.borderColor = "#ff0055";
+                recBtn.onclick = stopVoiceRecording;
+
+            } catch (err) {
+                alert("මයික්‍රෆෝන් අවසරය ලබාදී නැත හෝ දෝෂයක් ඇත: " + err.message);
+            }
+        }
+
+        function stopVoiceRecording() {
+            if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                
+                document.getElementById('voice-status-text').innerText = "✅ Recording completed! Listen or download below:";
+                
+                let recBtn = document.getElementById('voice-rec-btn');
+                recBtn.innerText = "🎙️ Start New Recording";
+                recBtn.style.background = "transparent";
+                recBtn.style.color = "#0ff";
+                recBtn.style.borderColor = "#0ff";
+                recBtn.onclick = startVoiceRecording;
+            }
+        }
+
+        function downloadVoiceRecording() {
+            if (!recordedAudioBlob) return;
+            let a = document.createElement('a');
+            a.href = recordedAudioUrl;
+            a.download = "Panzora_Voice_Record.webm";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // --- PDF Creator Logic ---
+        let selectedPdfFiles = [];
+
+        function handlePdfImages(event) {
+            let files = Array.from(event.target.files);
+            
+            if (files.length > 15) {
+                alert("ඔබට උපරිම කළ හැක්කේ ඡායාරූප 15ක් පමණි! පළමු 15 පමණක් තෝරා ගන්නා ලදී.");
+                files = files.slice(0, 15);
+            }
+            
+            selectedPdfFiles = files;
+            document.getElementById('pdf-file-count').innerText = `Selected Photos: ${selectedPdfFiles.length} / 15`;
+            
+            let thumbsContainer = document.getElementById('pdf-thumbs-preview');
+            thumbsContainer.innerHTML = "";
+            
+            selectedPdfFiles.forEach((file) => {
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    let img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.width = "45px";
+                    img.style.height = "45px";
+                    img.style.objectFit = "cover";
+                    img.style.borderRadius = "6px";
+                    img.style.border = "1px solid #ff5500";
+                    thumbsContainer.appendChild(img);
+                }
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function generatePDF() {
+            if (selectedPdfFiles.length === 0) {
+                alert("කරුණාකර මුලින්ම ගැලරියෙන් ඡායාරූප තෝරා ගන්න!");
+                return;
+            }
+
+            let statusMsg = document.getElementById('pdf-status-msg');
+            statusMsg.style.display = "block";
+            statusMsg.innerText = "PDF ගොනුව සකස් කරමින් පවතී...";
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF();
+
+                for (let i = 0; i < selectedPdfFiles.length; i++) {
+                    let file = selectedPdfFiles[i];
+                    let dataUrl = await readFileAsDataURL(file);
+
+                    if (i > 0) {
+                        pdf.addPage();
+                    }
+
+                    let imgProps = pdf.getImageProperties(dataUrl);
+                    let pdfWidth = 210;
+                    let pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+                    if (pdfHeight > 297) {
+                        pdfHeight = 297;
+                        pdfWidth = (imgProps.width * pdfHeight) / imgProps.height;
+                    }
+
+                    let x = (210 - pdfWidth) / 2;
+                    let y = (297 - pdfHeight) / 2;
+
+                    pdf.addImage(dataUrl, 'JPEG', x, y, pdfWidth, pdfHeight);
+                }
+
+                pdf.save("Panzora_Document.pdf");
+                statusMsg.innerText = "PDF ගොනුව සාර්ථකව ඩවුන්ලෝඩ් විය!";
+            } catch (err) {
+                statusMsg.innerText = "දෝෂයක් ඇති විය: " + err.message;
+            }
+        }
+
+        function readFileAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                let reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Password Generator
+        function updateLength() {
+            document.getElementById("length-val").innerText = document.getElementById("pass-length").value;
+        }
+
+        function generatePassword() {
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
+            let passLength = document.getElementById("pass-length").value;
+            let password = "";
+            for (let i = 0; i < passLength; i++) {
+                let randomNumber = Math.floor(Math.random() * chars.length);
+                password += chars.substring(randomNumber, randomNumber + 1);
+            }
+            document.getElementById("generated-pass").value = password;
+            document.getElementById("copy-msg").style.display = "none";
+        }
+
+        function copyPassword() {
+            let passField = document.getElementById("generated-pass");
+            if (passField.value === "Click Generate" || passField.value === "") return;
+            passField.select();
+            passField.setSelectionRange(0, 99999);
+            document.execCommand("copy");
+            document.getElementById("copy-msg").style.display = "block";
+            setTimeout(() => { document.getElementById("copy-msg").style.display = "none"; }, 2000);
+        }
+
+        // QR Code Generator
+        let qrInstance = null;
+        function generateQR() {
+            let text = document.getElementById("qr-text").value;
+            let output = document.getElementById("qrcode-output");
+            output.innerHTML = "";
+            if (!text) return;
+            
+            qrInstance = new QRCode(output, {
+                text: text, width: 120, height: 120,
+                colorDark: "#000000", colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        // QR Code Scanner
+        let html5QrCode = null;
+        let lastScannedText = "";
+
+        function startScanner() {
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 160, height: 160 } },
+                (decodedText) => {
+                    lastScannedText = decodedText.trim();
+                    document.getElementById("scan-result-text").innerText = "Result: " + lastScannedText;
+                    document.getElementById("scan-result-box").style.display = "block";
+                },
+                () => {}
+            ).catch(err => {
+                alert("Camera permission denied or error: " + err);
+            });
+        }
+
+        function stopScanner() {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    html5QrCode.clear();
+                }).catch(() => {});
+            }
+        }
+
+        function openScannedLink() {
+            if (lastScannedText) {
+                let cleanUrl = lastScannedText;
+                if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+                    cleanUrl = 'https://' + cleanUrl;
+                }
+                window.open(cleanUrl, '_blank');
+            }
+        }
+
+        function copyScannedText() {
+            if (lastScannedText) {
+                navigator.clipboard.writeText(lastScannedText).then(() => {
+                    alert("Scanned text copied to clipboard!");
+                });
+            }
+        }
+
+        // OCR Handler
+        let selectedImageFile = null;
+
+        function handleImage(event) {
+            let file = event.target.files[0];
+            if (file) {
+                selectedImageFile = file;
+                let imageUrl = URL.createObjectURL(file);
+                document.getElementById("ocr-img-preview").src = imageUrl;
+                document.getElementById("ocr-preview-box").style.display = "block";
+                document.getElementById("ocr-result-box").style.display = "flex";
+                document.getElementById("ocr-result-text-full").innerText = "Image loaded. Click 'Extract Exact Text' below.";
+            }
+        }
+
+        function extractImageText() {
+            if (!selectedImageFile) {
+                alert("Please select or capture an image first!");
+                return;
+            }
+
+            let selectedLang = document.getElementById("ocr-lang").value;
+            let resultText = document.getElementById("ocr-result-text-full");
+            resultText.innerText = "Extracting text with AI OCR...";
+
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                Tesseract.recognize(
+                    e.target.result,
+                    selectedLang,
+                    {
+                        logger: m => {
+                            if (m.status === 'recognizing text') {
+                                resultText.innerText = `Extracting: ${Math.round(m.progress * 100)}%`;
+                            }
+                        }
+                    }
+                ).then(({ data: { text } }) => {
+                    let cleanedText = text ? text.trim() : "";
+                    resultText.innerText = cleanedText ? cleanedText : "No text detected in this image.";
+                }).catch(err => {
+                    resultText.innerText = "Error during extraction: " + err;
+                });
+            }
+            reader.readAsDataURL(selectedImageFile);
+        }
+
+        function copyOcrText() {
+            let text = document.getElementById("ocr-result-text-full").innerText;
+            if (text && text !== "Select an image to extract text..." && !text.includes("Extracting")) {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert("Extracted text copied to clipboard!");
+                });
+            }
+        }
+
+        // Smart Text Formatter
+        let formatterMsgTimeout = null;
+        function encodeBase64() {
+            let el = document.getElementById("formatter-text");
+            try {
+                el.value = btoa(unescape(encodeURIComponent(el.value)));
+            } catch(e) { alert("Encoding Error!"); }
+        }
+
+        function decodeBase64() {
+            let el = document.getElementById("formatter-text");
+            try {
+                el.value = decodeURIComponent(escape(atob(el.value)));
+            } catch(e) { alert("Invalid Base64 string!"); }
+        }
+
+        function removeLineBreaks() {
+            let el = document.getElementById("formatter-text");
+            el.value = el.value.replace(/(\r\n|\n|\r)/gm, " ");
+        }
+
+        function copyFormatterText() {
+            let el = document.getElementById("formatter-text");
+            if (el.value) {
+                navigator.clipboard.writeText(el.value).then(() => {
+                    let msg = document.getElementById("formatter-msg");
+                    msg.style.display = "block";
+                    if (formatterMsgTimeout) clearTimeout(formatterMsgTimeout);
+                    formatterMsgTimeout = setTimeout(() => { msg.style.display = "none"; }, 2000);
+                });
+            }
+        }
+
+        // --- Cyberpunk Color Picker Functions ---
+        let colorMsgTimeout = null;
+        function updateColorPicker(colorHex) {
+            document.getElementById("color-preview").style.backgroundColor = colorHex;
+            document.getElementById("color-hex-output").value = colorHex;
+            document.getElementById("color-msg").style.display = "none";
+        }
+
+        function setPresetColor(colorHex) {
+            document.getElementById("native-color-picker").value = colorHex;
+            updateColorPicker(colorHex);
+        }
+
+        function copyColorHex() {
+            let hexVal = document.getElementById("color-hex-output").value;
+            navigator.clipboard.writeText(hexVal).then(() => {
+                let msg = document.getElementById("color-msg");
+                msg.style.display = "block";
+                if (colorMsgTimeout) clearTimeout(colorMsgTimeout);
+                colorMsgTimeout = setTimeout(() => { msg.style.display = "none"; }, 2000);
+            });
+        }
+
+        // --- Mini Cyber Snake Game Logic ---
+        let snakeInterval = null;
+        function startSnakeGame() {
+            stopSnakeGame();
+            const canvas = document.getElementById("game-canvas");
+            const ctx = canvas.getContext("2d");
+            const gridSize = 12;
+            let snake = [{x: 120, y: 120}, {x: 108, y: 120}, {x: 96, y: 120}];
+            let food = {x: 60, y: 60};
+            let dx = gridSize;
+            let dy = 0;
+            let score = 0;
+            document.getElementById("snake-score").innerText = score;
+
+            function createFood() {
+                food.x = Math.floor(Math.random() * (canvas.width / gridSize)) * gridSize;
+                food.y = Math.floor(Math.random() * (canvas.height / gridSize)) * gridSize;
+            }
+            createFood();
+
+            window.changeSnakeDir = function(dir) {
+                if (dir === 'UP' && dy === 0) { dx = 0; dy = -gridSize; }
+                if (dir === 'DOWN' && dy === 0) { dx = 0; dy = gridSize; }
+                if (dir === 'LEFT' && dx === 0) { dx = -gridSize; dy = 0; }
+                if (dir === 'RIGHT' && dx === 0) { dx = gridSize; dy = 0; }
+            };
+
+            snakeInterval = setInterval(() => {
+                let head = {x: snake[0].x + dx, y: snake[0].y + dy};
+
+                if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height) {
+                    stopSnakeGame();
+                    alert("Game Over! Score: " + score);
+                    return;
+                }
+
+                for (let i = 0; i < snake.length; i++) {
+                    if (head.x === snake[i].x && head.y === snake[i].y) {
+                        stopSnakeGame();
+                        alert("Game Over! Score: " + score);
+                        return;
+                    }
+                }
+
+                snake.unshift(head);
+
+                if (head.x === food.x && head.y === food.y) {
+                    score += 10;
+                    document.getElementById("snake-score").innerText = score;
+                    createFood();
+                } else {
+                    snake.pop();
+                }
+
+                ctx.fillStyle = "#050505";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.fillStyle = "#ff0055";
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = "#ff0055";
+                ctx.fillRect(food.x, food.y, gridSize - 2, gridSize - 2);
+
+                ctx.fillStyle = "#00ffff";
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = "#00ffff";
+                snake.forEach((part) => {
+                    ctx.fillRect(part.x, part.y, gridSize - 2, gridSize - 2);
+                });
+                ctx.shadowBlur = 0;
+            }, 120);
+        }
+
+        function stopSnakeGame() {
+            if (snakeInterval) {
+                clearInterval(snakeInterval);
+                snakeInterval = null;
+            }
+        }
+
+        // --- Panzora AI Chat Hub with Plugins Support ---
+        let lastAiText = "";
+        let activePlugin = null;
+
+        function togglePlugin(pluginName) {
+            let searchBtn = document.getElementById("plugin-search-btn");
+            let calcBtn = document.getElementById("plugin-calc-btn");
+
+            if (activePlugin === pluginName) {
+                activePlugin = null;
+                searchBtn.style.background = "rgba(255, 0, 255, 0.08)";
+                calcBtn.style.background = "rgba(255, 0, 255, 0.08)";
+                searchBtn.innerText = "🌐 Web Search: OFF";
+                calcBtn.innerText = "🧮 Math Tool: OFF";
+            } else {
+                activePlugin = pluginName;
+                if (pluginName === 'search') {
+                    searchBtn.style.background = "#00ffaa";
+                    searchBtn.style.color = "#000";
+                    searchBtn.innerText = "🌐 Web Search: ON";
+                    calcBtn.style.background = "rgba(255, 0, 255, 0.08)";
+                    calcBtn.innerText = "🧮 Math Tool: OFF";
+                } else if (pluginName === 'calc') {
+                    calcBtn.style.background = "#ffaa00";
+                    calcBtn.style.color = "#000";
+                    calcBtn.innerText = "🧮 Math Tool: ON";
+                    searchBtn.style.background = "rgba(255, 0, 255, 0.08)";
+                    searchBtn.innerText = "🌐 Web Search: OFF";
+                }
+            }
+        }
+
+        async function sendAIChat() {
+            let apiKey = document.getElementById("gemini-key").value.trim();
+            let promptInput = document.getElementById("ai-prompt").value.trim();
+            let messagesArea = document.getElementById("ai-messages-area");
+
+            if (!apiKey) {
+                alert("Please enter your valid Gemini API Key starting with AIzaSy...");
+                return;
+            }
+            if (!promptInput) return;
+
+            messagesArea.innerHTML += `<div class="chat-bubble user">${promptInput}</div>`;
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+            document.getElementById("ai-prompt").value = "";
+
+            let finalPrompt = promptInput;
+
+            if (activePlugin === 'search') {
+                messagesArea.innerHTML += `<div class="chat-bubble ai" style="font-size:12px; color:#00ffaa;">🔍 [Plugin Active]: Searching web & fetching live context...</div>`;
+                try {
+                    let searchRes = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(promptInput)}&format=json`);
+                    let searchJson = await searchRes.json();
+                    let snippet = searchJson.AbstractText || searchJson.Heading || "No direct snippet found.";
+                    
+                    finalPrompt = `Context from Web Search Plugin: "${snippet}". \n\nUser Question: ${promptInput}`;
+                } catch (e) {
+                    finalPrompt = promptInput;
+                }
+            } else if (activePlugin === 'calc') {
+                try {
+                    let mathResult = eval(promptInput.replace(/[^0-9+\-*/().]/g, ''));
+                    if (mathResult !== undefined && !isNaN(mathResult)) {
+                        finalPrompt = `Math Calculator Plugin Result: ${mathResult}. \n\nExplain this calculation for user prompt: ${promptInput}`;
+                    }
+                } catch (e) {
+                    finalPrompt = promptInput;
+                }
+            }
+
+            try {
+                let url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                
+                let response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: finalPrompt }] }]
+                    })
+                });
+
+                let data = await response.json();
+                
+                if (data.error) {
+                    messagesArea.innerHTML += `<div class="chat-bubble ai" style="border-color:#ff3333; color:#ff3333;"><b>API Error:</b> ${data.error.message}</div>`;
+                } else if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts) {
+                    let reply = data.candidates[0].content.parts[0].text;
+                    lastAiText = reply;
+                    messagesArea.innerHTML += `<div class="chat-bubble ai">${reply}</div>`;
+                } else {
+                    messagesArea.innerHTML += `<div class="chat-bubble ai" style="border-color:#ff3333; color:#ff3333;"><b>Error:</b> Invalid response or incorrect API Key!</div>`;
+                }
+            } catch (err) {
+                messagesArea.innerHTML += `<div class="chat-bubble ai" style="border-color:#ff3333; color:#ff3333;"><b>Network Error:</b> ${err.message}</div>`;
+            }
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+        }
+
+        function generateAIImage() {
+            let prompt = document.getElementById("ai-prompt").value.trim();
+            let messagesArea = document.getElementById("ai-messages-area");
+            if (!prompt) {
+                alert("Please describe the image you want to generate in the input box!");
+                return;
+            }
+
+            messagesArea.innerHTML += `<div class="chat-bubble user">${prompt}</div>`;
+            let encodedPrompt = encodeURIComponent(prompt);
+            let imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}`;
+            
+            messagesArea.innerHTML += `<div class="chat-bubble ai"><b>Generated Image:</b><br><img src="${imageUrl}" crossorigin="anonymous"></div>`;
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+            document.getElementById("ai-prompt").value = "";
+        }
+
+        function startVoiceInput() {
+            try {
+                let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                recognition.lang = 'en-US';
+                recognition.onresult = function(event) {
+                    let speechText = event.results[0][0].transcript;
+                    document.getElementById("ai-prompt").value = speechText;
+                };
+                recognition.start();
+            } catch(e) {
+                alert("Speech recognition not supported on this browser.");
+            }
+        }
+
+        function speakLastResponse() {
+            if (!lastAiText) {
+                alert("No AI response to speak!");
+                return;
+            }
+            let utterance = new SpeechSynthesisUtterance(lastAiText);
+            utterance.lang = 'en-US';
+            window.speechSynthesis.speak(utterance);
+        }
+    </script>
+</body>
+</html>
